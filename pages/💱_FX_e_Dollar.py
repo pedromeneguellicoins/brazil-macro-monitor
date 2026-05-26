@@ -1,6 +1,5 @@
 """
 Página FX e Dollar — PTAX × DXY × DTWEXBGS.
-Análise de correlação rolling e identificação de regimes.
 """
 import streamlit as st
 import pandas as pd
@@ -14,6 +13,7 @@ from utils.styling import (
     get_custom_css, render_header, render_footer, render_kpi
 )
 from utils.data_loaders import load_ptax, load_yahoo, load_fred, join_and_align
+from utils.glossary import render_inline_description, render_detail_expander
 
 # ============================================================
 # CONFIG
@@ -44,7 +44,7 @@ with st.sidebar:
 # ============================================================
 st.markdown(
     render_header(
-        title="FX e Dollar Indices",
+        title="FX & Dollar Indices",
         subtitle="PTAX × DXY × DTWEXBGS — análise de correlação e regimes",
         sources=["BCB SGS", "Yahoo Finance", "FRED"]
     ),
@@ -80,7 +80,6 @@ if len(df) < janela_corr + 5:
     st.error(f"❌ Dados insuficientes ({len(df)} linhas).")
     st.stop()
 
-# Retornos e correlações
 df['ret_ptax'] = df['PTAX'].pct_change()
 for idx in cols_idx:
     df[f'ret_{idx}'] = df[idx].pct_change()
@@ -125,47 +124,71 @@ tab1, tab2, tab3, tab4 = st.tabs(["📊 Overview", "🔗 Correlações",
 
 # --- TAB 1: Overview ---
 with tab1:
-    fig = make_subplots(
-        rows=1 + len(cols_idx), cols=1, shared_xaxes=True,
-        subplot_titles=["PTAX (BRL/USD)"] + cols_idx,
-        vertical_spacing=0.08
-    )
+    # Layout: gráfico (col esquerda larga) + descrições (col direita estreita)
+    col_chart, col_info = st.columns([3, 1])
 
-    fig.add_trace(
-        go.Scatter(x=df.index, y=df['PTAX'], name='PTAX',
-                   line=dict(color=COLORS['ptax'], width=2)),
-        row=1, col=1
-    )
-
-    for i, idx in enumerate(cols_idx):
-        fig.add_trace(
-            go.Scatter(x=df.index, y=df[idx], name=idx,
-                       line=dict(color=cores_idx_map.get(idx, '#888'), width=2)),
-            row=i+2, col=1
+    with col_chart:
+        fig = make_subplots(
+            rows=1 + len(cols_idx), cols=1, shared_xaxes=True,
+            subplot_titles=["PTAX (BRL/USD)"] + cols_idx,
+            vertical_spacing=0.08
         )
 
-    fig.update_layout(**PLOTLY_LAYOUT, height=250*(1+len(cols_idx)),
-                       showlegend=False)
-    fig.update_xaxes(**PLOTLY_AXIS)
-    fig.update_yaxes(**PLOTLY_AXIS)
-    st.plotly_chart(fig, use_container_width=True)
+        fig.add_trace(
+            go.Scatter(x=df.index, y=df['PTAX'], name='PTAX',
+                       line=dict(color=COLORS['ptax'], width=2)),
+            row=1, col=1
+        )
+
+        for i, idx in enumerate(cols_idx):
+            fig.add_trace(
+                go.Scatter(x=df.index, y=df[idx], name=idx,
+                           line=dict(color=cores_idx_map.get(idx, '#888'), width=2)),
+                row=i+2, col=1
+            )
+
+        fig.update_layout(**PLOTLY_LAYOUT, height=250*(1+len(cols_idx)),
+                           showlegend=False)
+        fig.update_xaxes(**PLOTLY_AXIS)
+        fig.update_yaxes(**PLOTLY_AXIS)
+        st.plotly_chart(fig, use_container_width=True)
+
+    with col_info:
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown(render_inline_description("PTAX"), unsafe_allow_html=True)
+        for idx in cols_idx:
+            st.markdown(render_inline_description(idx), unsafe_allow_html=True)
+
+    # Expanders detalhados abaixo
+    st.markdown("---")
+    st.markdown("##### 📖 Documentação técnica")
+    render_detail_expander("PTAX", st)
+    for idx in cols_idx:
+        render_detail_expander(idx, st)
 
 # --- TAB 2: Correlações ---
 with tab2:
-    fig_corr = go.Figure()
-    for idx in cols_idx:
-        fig_corr.add_trace(go.Scatter(
-            x=df.index, y=df[f'corr_{idx}'],
-            name=f'PTAX × {idx}',
-            line=dict(color=cores_idx_map.get(idx, '#888'), width=2)
-        ))
-    fig_corr.add_hline(y=0, line_dash="dash", line_color=COLORS['neutral'],
-                        opacity=0.5)
-    fig_corr.update_layout(**PLOTLY_LAYOUT, height=450,
-                            title=f"Correlação Rolling {janela_corr} dias")
-    fig_corr.update_xaxes(**PLOTLY_AXIS)
-    fig_corr.update_yaxes(**PLOTLY_AXIS, range=[-1, 1])
-    st.plotly_chart(fig_corr, use_container_width=True)
+    col_chart, col_info = st.columns([3, 1])
+
+    with col_chart:
+        fig_corr = go.Figure()
+        for idx in cols_idx:
+            fig_corr.add_trace(go.Scatter(
+                x=df.index, y=df[f'corr_{idx}'],
+                name=f'PTAX × {idx}',
+                line=dict(color=cores_idx_map.get(idx, '#888'), width=2)
+            ))
+        fig_corr.add_hline(y=0, line_dash="dash", line_color=COLORS['neutral'],
+                            opacity=0.5)
+        fig_corr.update_layout(**PLOTLY_LAYOUT, height=450,
+                                title=f"Correlação Rolling {janela_corr} dias")
+        fig_corr.update_xaxes(**PLOTLY_AXIS)
+        fig_corr.update_yaxes(**PLOTLY_AXIS, range=[-1, 1])
+        st.plotly_chart(fig_corr, use_container_width=True)
+
+    with col_info:
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown(render_inline_description("CORR_ROLLING"), unsafe_allow_html=True)
 
     st.markdown("##### 📈 Estatísticas comparativas")
     stats = []
@@ -183,36 +206,37 @@ with tab2:
     st.dataframe(pd.DataFrame(stats).round(3),
                   use_container_width=True, hide_index=True)
 
+    st.markdown("---")
+    st.markdown("##### 📖 Documentação técnica")
+    render_detail_expander("CORR_ROLLING", st)
+
 # --- TAB 3: Diferencial ---
 with tab3:
     if "DXY" in cols_idx and "DTWEXBGS" in cols_idx:
-        st.markdown(
-            f"<p style='color:{COLORS['text_dim']};'>"
-            f"Diferencial = <code>corr(PTAX, DTWEXBGS) − corr(PTAX, DXY)</code><br>"
-            f"<span style='color:{COLORS['positive']};'>● Positivo:</span> "
-            f"BRL mais sensível à cesta ampla (regime EM-driven)<br>"
-            f"<span style='color:{COLORS['negative']};'>● Negativo:</span> "
-            f"BRL mais G10-driven (carry ou risco idiossincrático)"
-            f"</p>",
-            unsafe_allow_html=True
-        )
+        col_chart, col_info = st.columns([3, 1])
 
         df['diff_corr'] = df['corr_DTWEXBGS'] - df['corr_DXY']
 
-        fig_diff = go.Figure()
-        fig_diff.add_trace(go.Scatter(
-            x=df.index, y=df['diff_corr'],
-            fill='tozeroy',
-            line=dict(color='#A78BFA', width=2),
-            fillcolor='rgba(167, 139, 250, 0.2)',
-            name='Diff'
-        ))
-        fig_diff.add_hline(y=0, line_dash="dash", line_color=COLORS['neutral'])
-        fig_diff.update_layout(**PLOTLY_LAYOUT, height=500,
-                                title="Diferencial de Correlação (regime indicator)")
-        fig_diff.update_xaxes(**PLOTLY_AXIS)
-        fig_diff.update_yaxes(**PLOTLY_AXIS)
-        st.plotly_chart(fig_diff, use_container_width=True)
+        with col_chart:
+            fig_diff = go.Figure()
+            fig_diff.add_trace(go.Scatter(
+                x=df.index, y=df['diff_corr'],
+                fill='tozeroy',
+                line=dict(color='#A78BFA', width=2),
+                fillcolor='rgba(167, 139, 250, 0.2)',
+                name='Diff'
+            ))
+            fig_diff.add_hline(y=0, line_dash="dash", line_color=COLORS['neutral'])
+            fig_diff.update_layout(**PLOTLY_LAYOUT, height=500,
+                                    title="Diferencial de Correlação (regime indicator)")
+            fig_diff.update_xaxes(**PLOTLY_AXIS)
+            fig_diff.update_yaxes(**PLOTLY_AXIS)
+            st.plotly_chart(fig_diff, use_container_width=True)
+
+        with col_info:
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown(render_inline_description("CORR_DIFFERENTIAL"),
+                       unsafe_allow_html=True)
 
         col_a, col_b, col_c, col_d = st.columns(4)
         diff_serie = df['diff_corr'].dropna()
@@ -220,6 +244,10 @@ with tab3:
         col_b.metric(f"Média {anos}y", f"{diff_serie.mean():+.3f}")
         col_c.metric("% tempo EM-driven", f"{(diff_serie > 0).mean()*100:.1f}%")
         col_d.metric("Mediana", f"{diff_serie.median():+.3f}")
+
+        st.markdown("---")
+        st.markdown("##### 📖 Documentação técnica")
+        render_detail_expander("CORR_DIFFERENTIAL", st)
     else:
         st.info("Selecione DXY e DTWEXBGS na sidebar para ver o diferencial.")
 
