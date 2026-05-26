@@ -44,7 +44,7 @@ with st.sidebar:
 # ============================================================
 st.markdown(
     render_header(
-        title="💱 FX e Dollar Indices",
+        title="FX e Dollar Indices",
         subtitle="PTAX × DXY × DTWEXBGS — análise de correlação e regimes",
         sources=["BCB SGS", "Yahoo Finance", "FRED"]
     ),
