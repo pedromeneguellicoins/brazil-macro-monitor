@@ -29,7 +29,7 @@ st.markdown(get_custom_css(), unsafe_allow_html=True)
 # ============================================================
 st.markdown(
     render_header(
-        title="📈 BRL Macro Monitor",
+        title="BRL Macro Monitor",
         subtitle="Monitor de drivers macroeconômicos do real brasileiro",
         sources=["BCB SGS", "Yahoo Finance", "FRED", "CoinGecko"]
     ),
