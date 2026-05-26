@@ -53,7 +53,7 @@ Séries com calendários diferentes (PTAX diário, DTWEXBGS semanal) são alinha
 
 ## Contato
 
-Construído por **Pedro Mendes** · Senior FX/Crypto OTC Trader, Coins.ph
+Construído por **Pedro Meneguelli** · FX/Crypto OTC Trader · pedromeneguelli@hotmail.com
 """)
 
 st.markdown(render_footer(), unsafe_allow_html=True)
