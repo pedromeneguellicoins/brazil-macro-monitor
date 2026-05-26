@@ -9,7 +9,7 @@ st.markdown(get_custom_css(), unsafe_allow_html=True)
 
 st.markdown(
     render_header(
-        title="📋 About",
+        title=" About",
         subtitle="Metodologia, fontes de dados e limitações",
         sources=["Documentação técnica"]
     ),
