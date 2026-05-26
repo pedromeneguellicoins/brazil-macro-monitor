@@ -4,6 +4,7 @@ Overview com os principais indicadores em uma tela.
 """
 import streamlit as st
 import pandas as pd
+import requests
 from datetime import datetime, timedelta
 
 from utils.styling import (
@@ -30,111 +31,90 @@ st.markdown(
     render_header(
         title="📈 BRL Macro Monitor",
         subtitle="Monitor de drivers macroeconômicos do real brasileiro",
-        sources=["BCB SGS", "Yahoo Finance", "FRED", "Exchanges públicas"]
+        sources=["BCB SGS", "Yahoo Finance", "FRED", "Binance", "CoinGecko"]
     ),
     unsafe_allow_html=True
 )
 
 # ============================================================
-# OVERVIEW — INDICADORES PRINCIPAIS
+# HELPER: KPI seguro (lida com séries vazias, NaN, etc.)
 # ============================================================
-st.markdown("### 🎯 Snapshot de Mercado")
-
-end_date = datetime.today()
-start_date = end_date - timedelta(days=60)  # 60d só pra ter histórico recente
-
-# Carrega dados rapidamente
-try:
-    with st.spinner("Carregando indicadores..."):
-        ptax = load_ptax(start_date, end_date)
-        dxy = load_yahoo('DX-Y.NYB', start_date, end_date, col_name='DXY')
-        vix = load_yahoo('^VIX', start_date, end_date, col_name='VIX')
-        cnh = load_yahoo('CNH=X', start_date, end_date, col_name='CNH')
-
-    # KPIs
-    col1, col2, col3, col4 = st.columns(4)
-
-    if not ptax.empty:
-        ptax_now = ptax['PTAX'].iloc[-1]
-        ptax_chg = (ptax['PTAX'].iloc[-1] / ptax['PTAX'].iloc[-2] - 1) * 100
-        col1.markdown(
-            render_kpi("PTAX (BRL/USD)", f"R$ {ptax_now:.4f}", ptax_chg,
-                       border_color=COLORS['ptax']),
+def safe_kpi(col, label, df, col_name, fmt="num", border_color=None):
+    """
+    Renderiza KPI com tratamento defensivo.
+    fmt: 'num' (2 casas), 'price' (4 casas BRL), 'crypto' (variável)
+    """
+    if df is None or df.empty or col_name not in df.columns:
+        col.markdown(
+            render_kpi(label, "—", None, border_color=border_color or COLORS['neutral']),
             unsafe_allow_html=True
         )
+        return
 
-    if not dxy.empty:
-        dxy_now = dxy['DXY'].iloc[-1]
-        dxy_chg = (dxy['DXY'].iloc[-1] / dxy['DXY'].iloc[-2] - 1) * 100
-        col2.markdown(
-            render_kpi("DXY", f"{dxy_now:.2f}", dxy_chg,
-                       border_color=COLORS['dxy']),
+    serie = df[col_name].dropna()
+    if len(serie) < 2:
+        col.markdown(
+            render_kpi(label, "—", None, border_color=border_color or COLORS['neutral']),
             unsafe_allow_html=True
         )
+        return
 
-    if not cnh.empty:
-        cnh_now = cnh['CNH'].iloc[-1]
-        cnh_chg = (cnh['CNH'].iloc[-1] / cnh['CNH'].iloc[-2] - 1) * 100
-        col3.markdown(
-            render_kpi("CNH (Yuan offshore)", f"{cnh_now:.4f}", cnh_chg,
-                       border_color=COLORS['cnh']),
+    now = serie.iloc[-1]
+    prev = serie.iloc[-2]
+
+    if pd.isna(now) or pd.isna(prev) or prev == 0:
+        col.markdown(
+            render_kpi(label, "—", None, border_color=border_color or COLORS['neutral']),
             unsafe_allow_html=True
         )
+        return
 
-    if not vix.empty:
-        vix_now = vix['VIX'].iloc[-1]
-        vix_chg = (vix['VIX'].iloc[-1] / vix['VIX'].iloc[-2] - 1) * 100
-        col4.markdown(
-            render_kpi("VIX", f"{vix_now:.2f}", vix_chg,
-                       border_color=COLORS['vix']),
-            unsafe_allow_html=True
-        )
+    chg = (now / prev - 1) * 100
 
-except Exception as e:
-    st.warning(f"Algumas séries não carregaram: {e}")
+    # Formatação do valor
+    if fmt == "price":
+        val_str = f"R$ {now:.4f}"
+    elif fmt == "crypto":
+        if now >= 1000:
+            val_str = f"${now:,.0f}"
+        elif now >= 1:
+            val_str = f"${now:.4f}"
+        else:
+            val_str = f"${now:.6f}"
+    else:  # num
+        val_str = f"{now:.2f}"
 
-st.markdown("<br>", unsafe_allow_html=True)
+    col.markdown(
+        render_kpi(label, val_str, chg, border_color=border_color or COLORS['neutral']),
+        unsafe_allow_html=True
+    )
 
-# ============================================================
-# GUIA DE NAVEGAÇÃO
-# ============================================================
-st.markdown("### 🧭 Navegação")
-st.markdown("""
-Use o menu lateral pra acessar as análises detalhadas:
-
-| Página | Conteúdo | Status |
-|---|---|---|
-| **💱 FX e Dollar** | PTAX × DXY × DTWEXBGS, correlações, regimes | ✅ Disponível |
-| **🪙 USDT Premium** | Premium USDT/BRL vs PTAX em múltiplas exchanges | 🚧 Em construção |
-| **📈 Rates** | Curva DI Brasil + diferencial Fed Funds | 🚧 Em construção |
-| **🌾 Commodities** | Iron ore, soja, Brent + CNH/Yuan | 🚧 Em construção |
-| **⚠️ Risk Sentiment** | VIX + spread NTN-B/UST (proxy CDS Brasil) | 🚧 Em construção |
-| **📋 About** | Metodologia, fontes, limitações | ✅ Disponível |
-""")
-
-st.markdown("<br>", unsafe_allow_html=True)
 
 # ============================================================
-# CONTEXTO DO PROJETO
+# HELPER: Preços crypto via CoinGecko (gratuito, sem auth)
 # ============================================================
-with st.expander("ℹ️ Sobre este monitor"):
-    st.markdown("""
-    **O que é:** Monitor contextual de drivers macroeconômicos do BRL, construído com fontes públicas e gratuitas.
-
-    **Para quê serve:**
-    - Acompanhar regimes de correlação do BRL com indicadores globais e locais
-    - Identificar quando o real se descola dos drivers tradicionais (sinal de fator idiossincrático)
-    - Apoiar narrativa de mercado em conversas com clientes e em análise pré-cotação
-
-    **Limitações:**
-    - Latência: dados de fechamento (não tempo real)
-    - Não é sistema de decisão automatizada — é monitor contextual
-    - Cobertura limitada ao que está em fontes gratuitas (sem CDS puro, sem vol implícita de opções FX)
-
-    **Atualização:** dados são atualizados automaticamente com cache de 1 hora.
-    """)
-
-# ============================================================
-# FOOTER
-# ============================================================
-st.markdown(render_footer(), unsafe_allow_html=True)
+@st.cache_data(ttl=300)  # cache de 5 min
+def get_crypto_prices():
+    """
+    Retorna dict com preço atual e variação 24h de USDT, USDC, BTC vs USD.
+    Fonte: CoinGecko (gratuito, sem API key).
+    """
+    try:
+        url = "https://api.coingecko.com/api/v3/simple/price"
+        params = {
+            "ids": "tether,usd-coin,bitcoin",
+            "vs_currencies": "usd",
+            "include_24hr_change": "true"
+        }
+        r = requests.get(url, params=params, timeout=10)
+        r.raise_for_status()
+        data = r.json()
+        return {
+            'USDT/USD': {
+                'price': data['tether']['usd'],
+                'change_24h': data['tether'].get('usd_24h_change', 0)
+            },
+            'USDC/USD': {
+                'price': data['usd-coin']['usd'],
+                'change_24h': data['usd-coin'].get('usd_24h_change', 0)
+            },
