@@ -1,218 +1,74 @@
-"""
-Glossário centralizado — definições e contexto de cada indicador.
-Quando adicionar nova métrica ao app, registra aqui.
-
-Estrutura de cada entrada:
-- short: 1-2 linhas pra caixa lateral ao gráfico
-- detail: explicação completa pro expander "Saiba mais"
-- why: por que esse indicador importa pra o BRL
-- source: fonte e periodicidade
-"""
-
-GLOSSARY = {
-    # ============================================================
-    # FX & MOEDAS
-    # ============================================================
-    "PTAX": {
-        "title": "PTAX (BRL/USD)",
-        "short": "Taxa oficial de câmbio USD/BRL divulgada pelo Banco Central. É a referência para liquidação de contratos cambiais e indexação de derivativos no Brasil.",
+"MXN": {
+        "title": "MXN/USD — Peso Mexicano",
+        "short": "Peso mexicano vs dólar. É a moeda emergente latino-americana mais líquida, frequentemente comparada com o BRL como par 'irmão'.",
         "detail": """
-A **PTAX** é a média ponderada das cotações de compra e venda do dólar praticadas no mercado interbancário brasileiro, calculada e divulgada pelo Banco Central do Brasil em 4 boletins ao longo do dia (10h, 11h, 12h, 13h) mais o fechamento.
+O **MXN** (peso mexicano) é a moeda emergente mais negociada da América Latina e uma das mais líquidas globalmente entre EMs.
 
-A PTAX usada como referência neste monitor é a **PTAX venda** (série 1 do BCB SGS), que é o valor padrão para liquidação de NDFs (Non-Deliverable Forwards), contratos cambiais e operações estruturadas no Brasil.
+**Por que comparar com BRL:**
+- Ambos são commodity-exporters (México: petróleo, manufatura; Brasil: minério, soja, carne)
+- Ambos têm bancos centrais independentes com regime de metas de inflação
+- Compartilham mesma faixa de risco em portfólios institucionais globais
+- Ciclos de fluxo de capital pra LatAm afetam ambos
 
-**Características técnicas:**
-- Calculada apenas em dias úteis (calendário B3)
-- Não inclui movimentos intradiários após o último boletim
-- Pode divergir do "dólar comercial" cotado pelas mesas no fim do dia
-        """,
-        "why": "É o preço de referência para qualquer hedge cambial estruturado no Brasil. Toda análise de regime do real começa aqui.",
-        "source": "BCB SGS · Série 1 · Diária (D+0)",
-    },
-
-    "DXY": {
-        "title": "DXY — US Dollar Index",
-        "short": "Índice que mede o dólar contra 6 moedas de economias desenvolvidas (EUR, JPY, GBP, CAD, SEK, CHF). É 57% EUR/USD invertido.",
-        "detail": """
-O **DXY** (ICE U.S. Dollar Index) é o índice mais antigo e popular de força do dólar americano. Foi criado em 1973 pelo Fed após o fim do Bretton Woods.
-
-**Composição (pesos fixos):**
-- EUR: 57,6%
-- JPY: 13,6%
-- GBP: 11,9%
-- CAD: 9,1%
-- SEK: 4,2%
-- CHF: 3,6%
-
-**Limitação para análise de emergentes:** O DXY foi desenhado em 1973 e não inclui nenhuma moeda asiática emergente (sem CNY, sem INR, sem MXN, sem BRL). Para BRL, é apenas um indicador parcial — útil pra capturar movimento "macro global do dólar", mas insuficiente sozinho.
-
-**Quando subir:** geralmente reflete Fed mais hawkish, fuga pra dólar (safe haven), ou crise no G10 (Europa/Japão).
-        """,
-        "why": "Termômetro de força do dólar globalmente. Quando DXY sobe, emergentes em geral apanham — mas o BRL pode se descolar se houver fator local dominante.",
-        "source": "Yahoo Finance · DX-Y.NYB · Diária",
-    },
-
-    "DTWEXBGS": {
-        "title": "DTWEXBGS — Trade-Weighted Broad Dollar Index",
-        "short": "Índice do Fed que mede o dólar contra 26 moedas, ponderado por volume de comércio dos EUA. Inclui CNY e outras moedas emergentes — mais relevante para o BRL que o DXY.",
-        "detail": """
-O **DTWEXBGS** (Trade-Weighted Broad Dollar Index – Goods and Services) é mantido pelo Federal Reserve e oferece uma medida muito mais completa da força do dólar que o DXY tradicional.
-
-**Diferenças cruciais para o DXY:**
-- Inclui 26 moedas (vs 6 do DXY)
-- Inclui **CNY (yuan chinês)**, ausente no DXY
-- Inclui MXN, KRW, INR, BRL, e outras emergentes
-- Pesos ajustados anualmente conforme fluxo comercial real dos EUA
-
-**Por que é mais relevante para o BRL:**
-A China é o maior parceiro comercial do Brasil. Quando o yuan se enfraquece, ativos brasileiros tendem a sofrer junto — esse canal não é capturado pelo DXY mas está no DTWEXBGS.
-
-**Limitação:** atualização semanal (sextas-feiras), não diária. Por isso fazemos forward-fill nos dias úteis intermediários.
-        """,
-        "why": "Para análise de moedas emergentes, especialmente BRL, é um indicador estruturalmente mais informativo que o DXY clássico — captura a perna asiática/emergente do dólar.",
-        "source": "FRED · Série DTWEXBGS · Semanal (sextas)",
-    },
-
-    "CNH": {
-        "title": "CNH — Yuan Offshore (Hong Kong)",
-        "short": "Yuan negociado fora da China continental (em Hong Kong). Mais sensível a fluxos de mercado que o yuan onshore (CNY), e o principal driver China-side do BRL.",
-        "detail": """
-O **CNH** é o yuan chinês negociado em mercados offshore (principalmente Hong Kong). É diferente do **CNY**, que é negociado dentro da China continental e tem banda de flutuação controlada pelo PBoC (banco central chinês).
-
-**Por que CNH e não CNY:**
-- CNH flutua livremente (CNY tem banda diária de ±2%)
-- CNH reflete o que estrangeiros estão dispostos a pagar pelo yuan
-- Quando o spread CNH-CNY se abre, é sinal de pressão de mercado contra a política do PBoC
-
-**Por que importa pro BRL:**
-China é o maior comprador de commodities brasileiras (minério, soja, carne). Quando o yuan enfraquece:
-1. Commodities cotadas em USD ficam mais caras pra China
-2. China reduz importações ou pressiona por preços menores
-3. Termos de troca do Brasil pioram → BRL deprecia
-
-O canal CNH→BRL pode ser observado historicamente com defasagem de poucos dias durante stress.
-        """,
-        "why": "Quando o yuan offshore enfraquece, BRL geralmente segue dentro de dias — é um indicador antecedente útil para movimentos de moedas emergentes commodity-exporters.",
-        "source": "Yahoo Finance · CNH=X · Diária",
-    },
-
-    "VIX": {
-        "title": "VIX — Índice de Volatilidade Implícita do S&P 500",
-        "short": "Mede a volatilidade implícita das opções do S&P 500 nos próximos 30 dias. É o termômetro global de apetite por risco — sobe em momentos de stress e cai em períodos calmos.",
-        "detail": """
-O **VIX** (CBOE Volatility Index) é calculado a partir dos prêmios das opções de S&P 500 e representa a volatilidade implícita esperada nos próximos 30 dias.
-
-**Faixas de referência (regimes históricos):**
-- **VIX < 15:** mercado calmo, "risk-on" — bom para carry trade em moedas emergentes
-- **VIX 15–20:** normal
-- **VIX 20–30:** stress moderado — emergentes começam a apanhar
-- **VIX > 30:** crise — fuga pra dólar e ativos seguros, EMs em queda forte
-- **VIX > 50:** pânico — eventos como COVID (mar/2020), Lehman (2008)
-
-**Limitação:** mede apenas vol implícita americana. Choques idiossincráticos brasileiros (fiscal, político) não aparecem no VIX, mas movem o BRL.
-        """,
-        "why": "Quando o VIX sobe, capital flui pra dólar e Treasuries — moedas emergentes incluindo BRL apanham mesmo sem evento local. É contexto essencial para distinguir movimento global vs idiossincrático.",
-        "source": "Yahoo Finance · ^VIX · Tempo real (15min delay)",
-    },
-
-    # ============================================================
-    # ANÁLISES DERIVADAS
-    # ============================================================
-    "CORR_ROLLING": {
-        "title": "Correlação Rolling",
-        "short": "Correlação entre retornos do BRL e do índice em janela móvel (padrão: 30 dias). Quando próxima de zero ou negativa, sinaliza que o BRL está se descolando do driver normal.",
-        "detail": """
-A **correlação rolling** é calculada sobre **retornos percentuais** (não preços) em janela móvel de N dias (configurável na sidebar).
-
-**Por que retornos e não preços:**
-Séries de preço são não-estacionárias (têm tendência). Correlação em nível dá resultados espúrios. Retornos percentuais resolvem esse problema — é a abordagem padrão em análise quantitativa de FX.
+**Diferenças importantes:**
+- MXN é mais ligado ao ciclo dos EUA (NAFTA/USMCA, manufatura) — sensível ao Fed
+- BRL é mais ligado ao ciclo da China (commodities) — sensível ao yuan
+- Quando MXN apanha mas BRL não, geralmente é stress idiossincrático mexicano (eleições, política)
+- Quando BRL apanha mas MXN não, geralmente é stress idiossincrático brasileiro (fiscal)
 
 **Interpretação:**
-- **Correlação positiva forte (>0,5):** BRL se move como esperado pelo driver
-- **Correlação fraca (-0,2 a 0,2):** outros fatores dominam — sinal de regime atípico
-- **Correlação negativa:** algo idiossincrático está movendo o BRL contra o fluxo global
-
-**Janela:**
-- 10 dias: muito ruidosa, capta movimento muito recente
-- 30 dias: padrão de mesa, equilíbrio entre ruído e tendência
-- 90 dias: estrutural, suaviza eventos pontuais
+Movimento conjunto MXN+BRL = fator EM/LatAm global. Movimento divergente = idiossincrático local.
         """,
-        "why": "Identifica quando o BRL está em regime atípico — momentos em que fatores locais (fiscal, político, regulatório) dominam sobre o driver global. É o sinal mais limpo de stress idiossincrático Brasil.",
-        "source": "Cálculo interno · janela ajustável",
+        "why": "Compara o BRL com o emergente mais próximo culturalmente e estruturalmente. Quando MXN e BRL se movem juntos, é fator EM regional; quando divergem, é fator idiossincrático local.",
+        "source": "Yahoo Finance · MXN=X · Diária",
     },
 
-    "CORR_DIFFERENTIAL": {
-        "title": "Diferencial de Correlação (DTWEXBGS – DXY)",
-        "short": "Indica se o BRL está mais correlacionado com dólar contra emergentes (DTWEXBGS) ou contra G10 (DXY). Identifica em qual 'regime' o real está operando.",
+    "ZAR": {
+        "title": "ZAR/USD — Rand Sul-Africano",
+        "short": "Rand sul-africano vs dólar. Tem correlação histórica alta com BRL — ambos são commodity-exporters emergentes com fragilidades fiscais.",
         "detail": """
-O **diferencial de correlação** é calculado como: Diff = corr(PTAX, DTWEXBGS) − corr(PTAX, DXY)
+O **ZAR** (rand sul-africano) é frequentemente chamado de "sister currency" do BRL na comunidade FX global.
 
-**Interpretação:**
-- **Diferencial positivo (>0):** BRL se comporta mais como moeda emergente típica — está se movendo junto com peso mexicano, rand sul-africano, yuan. Regime "EM-driven", normal pra economia emergente exportadora de commodities.
+**Por que tão correlacionado com BRL:**
+- Ambos são commodity-exporters (África do Sul: ouro, platina, minério; Brasil: minério, soja)
+- Ambos têm China como maior parceiro comercial
+- Ambos têm histórico de fragilidade fiscal e moedas voláteis
+- Em portfólios institucionais, frequentemente caem no mesmo "bucket" de risco emergente
 
-- **Diferencial negativo (<0):** BRL se comporta mais como moeda G10 — provavelmente carry-trade driven ou com risco idiossincrático dominante. Regime atípico, exige atenção.
+**Como traders globais usam:**
+Quando um trader de macro global quer expor risco emergente "high-beta" sem decidir entre Brasil e África do Sul, ele compra uma cesta BRL+ZAR. Por isso os fluxos chegam e saem juntos.
 
-- **Mudanças bruscas:** indicam transição de regime — momentos cruciais para reavaliar posições e narrativa de mercado.
+**Quando divergem:**
+- ZAR-only stress: problemas de energia (Eskom), greves
+- BRL-only stress: ruído fiscal brasileiro
 
-**Aplicação prática:**
-Saber em qual regime o BRL está operando ajuda a escolher o hedge correto:
-- Regime EM → hedge via cesta de emergentes ou DTWEXBGS
-- Regime G10 → hedge via DXY ou par específico
-- Transição → prêmio adicional necessário em derivativos
+**Padrão histórico:** correlação BRL-ZAR fica frequentemente acima de 0,6 em janelas de 30-90 dias.
         """,
-        "why": "Trader que entende regime cobra spread diferente que trader que opera correlação estática. Esse indicador é o sinal mais limpo de mudança de regime no BRL.",
-        "source": "Cálculo interno · derivado de correlações",
+        "why": "É o peer emergente com correlação histórica mais alta com BRL. Movimento conjunto = fator EM global; divergência = idiossincrático local. Termômetro útil pra separar 'beta de emergente' de 'risco Brasil'.",
+        "source": "Yahoo Finance · ZAR=X · Diária",
     },
-}
 
+    "TRY": {
+        "title": "TRY/USD — Lira Turca",
+        "short": "Lira turca vs dólar. É a moeda emergente mais volátil e politicamente instável — funciona como 'canário na mina' pra stress em EMs.",
+        "detail": """
+A **TRY** (lira turca) é conhecida como uma das moedas emergentes mais voláteis do mundo. Não pela economia turca em si, mas pela combinação de:
 
-def get_term(key):
-    """Retorna entrada do glossário, ou None se não existir."""
-    return GLOSSARY.get(key)
+- Histórico de inflação alta (50%+ em 2022-2024)
+- Política monetária controversa (Erdogan defende juros baixos contra inflação alta)
+- Intervenções cambiais frequentes
+- Fragilidade externa (déficit em conta corrente persistente)
 
+**Por que monitorar pra contexto BRL:**
+Quando a TRY desaba, geralmente acende alerta de "EM contagion risk" — investidores globais reduzem exposição em **todos** os emergentes, inclusive Brasil, mesmo sem evento brasileiro.
 
-def render_inline_description(key, layout="side"):
-    """
-    Renderiza descrição curta de um termo.
+**Funciona como early warning:**
+- TRY caindo forte + outros EMs estáveis = idiossincrático Turquia, baixa contaminação
+- TRY caindo forte + MXN/ZAR também caindo = stress EM generalizado, BRL provavelmente apanha em breve
 
-    layout:
-        'side': caixa lateral (pra colocar ao lado de gráfico)
-        'inline': caixa inline (acima do gráfico)
-    """
-    term = get_term(key)
-    if not term:
-        return ""
-
-    return f"""
-    <div style="
-        background-color: #0A0A0A;
-        border: 1px solid #2D2D2D;
-        border-left: 3px solid #FFA500;
-        padding: 0.8rem 1rem;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.78rem;
-        color: #B0B0B0;
-        line-height: 1.6;
-        margin: 0.5rem 0;
-    ">
-        <div style="color: #FFA500; font-weight: 600; margin-bottom: 0.4rem; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.05em;">
-            ℹ {term['title']}
-        </div>
-        <div>{term['short']}</div>
-    </div>
-    """
-
-
-def render_detail_expander(key, st):
-    """
-    Renderiza expander completo de um termo (use st passado pela página).
-    Coloca DENTRO do código da página, não no styling.
-    """
-    term = get_term(key)
-    if not term:
-        return
-
-    with st.expander(f"📖 Saiba mais sobre {term['title']}"):
-        st.markdown(term['detail'])
-        st.markdown(f"**Por que importa para o BRL:** {term['why']}")
-        st.caption(f"📊 {term['source']}")
+**Limitação:**
+TRY é tão volátil que perdeu parte do valor como sinal — algumas das suas crises são tão isoladas que não contaminam outros EMs. Use em conjunto com MXN e ZAR.
+        """,
+        "why": "Termômetro de stress emergente. Quando TRY entra em crise, é momento de monitorar contaminação pros outros EMs. Não é tão correlacionado com BRL quanto ZAR ou MXN, mas é sinal antecedente útil em regimes de risk-off.",
+        "source": "Yahoo Finance · TRY=X · Diária",
+    },
