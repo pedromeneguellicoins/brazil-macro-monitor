@@ -150,93 +150,8 @@ A **TRY** é conhecida como uma das moedas emergentes mais voláteis:
         "title": "USDT/BRL Premium",
         "short": "Diferença percentual entre o preço de USDT em BRL nas exchanges crypto e a PTAX oficial. Mede demanda por dólar via cripto vs câmbio tradicional.",
         "detail": """
-**Cálculo:**
-premium = (preço_USDT_BRL / PTAX) - 1
-**Interpretação:**
-- **Positivo (>0%):** USDT mais caro que dólar oficial — demanda represada por dólar via cripto
-- **Negativo (<0%):** USDT mais barato — excesso de oferta de USDT
-- **Próximo de zero:** mercado em equilíbrio
+**Cálculo:**  Diff = corr(PTAX, DTWEXBGS) − corr(PTAX, DXY)
 
-**Faixas típicas no Brasil:**
-- < 0,5%: mercado calmo
-- 0,5% - 1,5%: normal (cobre custos de on/off-ramp)
-- 1,5% - 3%: demanda elevada
-- > 3%: stress significativo, arbitragem clara
-- > 5%: pânico ou restrição cambial
-
-**Aplicação operacional:**
-Quando o premium abre, há demanda represada — sinal antecedente de pressão no PTAX. Para mesa OTC, é também medida direta de oportunidade de arbitragem.
-
-**Dispersão entre exchanges:**
-Diferenças refletem (a) liquidez, (b) custos operacionais, (c) base de clientes (varejo vs institucional).
-        """,
-        "why": "Indicador antecedente de pressão no BRL e medida direta de oportunidade de arbitragem.",
-        "source": "APIs públicas: Binance, Mercado Bitcoin, Foxbit, Bitso · PTAX: BCB SGS",
-    },
-
-    "P2P_VS_SPOT": {
-        "title": "P2P vs Spot — Por que o premium difere",
-        "short": "P2P é onde pessoas físicas trocam USDT direto entre si. Spot é o livro de ofertas profissional. P2P geralmente tem premium maior por refletir demanda de varejo.",
-        "detail": """
-**Spot (livro tradicional):**
-- Exchange casa ordens automaticamente
-- Market makers profissionais
-- Spread bid-ask apertado (0,01-0,1%)
-
-**P2P (peer-to-peer):**
-- Pessoas físicas anunciam direto
-- Pagamento por PIX, transferência
-- Spread bid-ask largo (1-3%)
-- Reflete demanda de varejo
-
-**Por que P2P tem premium maior:**
-1. PIX é instantâneo, exchange tradicional pode ter delay
-2. Anonimato relativo
-3. Volumes pequenos (varejo puro)
-4. Captura stress cambial primeiro
-
-**Diferencial P2P-Spot como indicador:**
-Em regimes normais, diferença é 0,3-0,8%. Quando passa de 1,5%, é sinal de demanda represada por dólar.
-
-**Metodologia neste monitor:**
-Mediana das 5 melhores ofertas (em vez da #1 ou média), porque:
-- Ignora outliers e spam
-- Reflete preço executável com volume
-- Mais estável
-        """,
-        "why": "Quando diverge muito do spot institucional, indica stress cambial que ainda não foi precificado no câmbio oficial.",
-        "source": "Binance P2P API (não-oficial) · top 5 mediana",
-    },
-
-    "CORR_ROLLING": {
-        "title": "Correlação Rolling",
-        "short": "Correlação entre retornos do BRL e do índice em janela móvel (padrão: 30 dias). Próxima de zero ou negativa sinaliza descolamento do driver normal.",
-        "detail": """
-Calculada sobre **retornos percentuais** em janela móvel de N dias.
-
-**Por que retornos e não preços:**
-Séries de preço são não-estacionárias. Correlação em nível dá resultados espúrios.
-
-**Interpretação:**
-- Forte (>0,5): BRL se move como esperado
-- Fraca (-0,2 a 0,2): outros fatores dominam — regime atípico
-- Negativa: algo idiossincrático move o BRL contra o fluxo global
-
-**Janela:**
-- 10d: muito ruidosa
-- 30d: padrão de mesa, equilíbrio
-- 90d: estrutural, suaviza eventos pontuais
-        """,
-        "why": "Identifica quando o BRL está em regime atípico — momentos em que fatores locais dominam sobre driver global.",
-        "source": "Cálculo interno · janela ajustável",
-    },
-
-    "CORR_DIFFERENTIAL": {
-        "title": "Diferencial de Correlação",
-        "short": "Indica se o BRL está mais correlacionado com dólar contra emergentes (DTWEXBGS) ou contra G10 (DXY). Identifica o 'regime' em que o real está operando.",
-        "detail": """
-**Cálculo:**
-Diff = corr(PTAX, DTWEXBGS) − corr(PTAX, DXY)
 **Interpretação:**
 - **Positivo (>0):** BRL como emergente típico — regime "EM-driven"
 - **Negativo (<0):** BRL como G10 — carry-trade ou idiossincrático
@@ -250,48 +165,8 @@ Diff = corr(PTAX, DTWEXBGS) − corr(PTAX, DXY)
         "why": "Trader que entende regime cobra spread diferente que trader que opera correlação estática.",
         "source": "Cálculo interno",
     },
-}
 
-
-def get_term(key):
-    return GLOSSARY.get(key)
-
-
-def render_inline_description(key, layout="side"):
-    term = get_term(key)
-    if not term:
-        return ""
-
-    return f"""
-    <div style="
-        background-color: #0A0A0A;
-        border: 1px solid #2D2D2D;
-        border-left: 3px solid #FFA500;
-        padding: 0.8rem 1rem;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.78rem;
-        color: #B0B0B0;
-        line-height: 1.6;
-        margin: 0.5rem 0;
-    ">
-        <div style="color: #FFA500; font-weight: 600; margin-bottom: 0.4rem; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.05em;">
-            ℹ {term['title']}
-        </div>
-        <div>{term['short']}</div>
-    </div>
-    """
-
-
-def render_detail_expander(key, st):
-    term = get_term(key)
-    if not term:
-        return
-
-    with st.expander(f"📖 Saiba mais sobre {term['title']}"):
-        st.markdown(term['detail'])
-        st.markdown(f"**Por que importa para o BRL:** {term['why']}")
-        st.caption(f"📊 {term['source']
-                       "COMMODITIES_EXPORT": {
+    "COMMODITIES_EXPORT": {
         "title": "Commodities Brasileiras de Exportação",
         "short": "Brasil é exportador líquido de petróleo, soja, minério de ferro e café. Quando esses preços sobem, geram fluxo de USD para o país e tendem a fortalecer o BRL.",
         "detail": """
@@ -356,11 +231,11 @@ Quando os preços de derivados sobem:
         "title": "Termos de Troca",
         "short": "Razão entre o preço médio das exportações e o preço médio das importações brasileiras. Quando sobe, Brasil 'ganha' no fluxo comercial; quando cai, 'perde'. É o indicador macro mais limpo de fundamentals do BRL.",
         "detail": """
-**Conceito clássico de macroeconomia:**}")
+**Conceito clássico de macroeconomia:**
 
 Termos de Troca = Preço médio das Exportações / Preço médio das Importações
 
-                        **Por que é o indicador macro mais limpo:**
+**Por que é o indicador macro mais limpo:**
 
 Se o Brasil exporta a US$100 e importa a US$80, está "ganhando" — pode importar mais com cada unidade exportada. Se exporta a US$100 e importa a US$120, está "perdendo" — precisa exportar mais para importar o mesmo.
 
@@ -397,4 +272,44 @@ Quando TT e BRL **divergem** (ambos sobem ou ambos caem juntos), é sinal de que
     },
 }
 
-                        
+
+def get_term(key):
+    return GLOSSARY.get(key)
+
+
+def render_inline_description(key, layout="side"):
+    term = get_term(key)
+    if not term:
+        return ""
+
+    return f"""
+    <div style="
+        background-color: #0A0A0A;
+        border: 1px solid #2D2D2D;
+        border-left: 3px solid #FFA500;
+        padding: 0.8rem 1rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.78rem;
+        color: #B0B0B0;
+        line-height: 1.6;
+        margin: 0.5rem 0;
+    ">
+        <div style="color: #FFA500; font-weight: 600; margin-bottom: 0.4rem; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.05em;">
+            ℹ {term['title']}
+        </div>
+        <div>{term['short']}</div>
+    </div>
+    """
+
+
+def render_detail_expander(key, st):
+    term = get_term(key)
+    if not term:
+        return
+
+    with st.expander(f"📖 Saiba mais sobre {term['title']}"):
+        st.markdown(term['detail'])
+        st.markdown(f"**Por que importa para o BRL:** {term['why']}")
+        st.caption(f"📊 {term['source']}")
+
+
