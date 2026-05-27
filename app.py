@@ -1,6 +1,5 @@
 """
 BRL Macro Monitor — Home page.
-Overview com os principais indicadores em uma tela.
 """
 import streamlit as st
 import pandas as pd
@@ -24,6 +23,25 @@ st.set_page_config(
 
 st.markdown(get_custom_css(), unsafe_allow_html=True)
 
+# CSS extra: renomeia "app" → "Monitor Macro" na sidebar
+st.markdown("""
+<style>
+    /* Renomeia o primeiro item da navegação multipage (o 'app') */
+    [data-testid="stSidebarNav"] ul li:first-child a span {
+        visibility: hidden;
+        position: relative;
+    }
+    [data-testid="stSidebarNav"] ul li:first-child a span::after {
+        content: "MONITOR MACRO";
+        visibility: visible;
+        position: absolute;
+        left: 0;
+        top: 0;
+        white-space: nowrap;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # ============================================================
 # HEADER
 # ============================================================
@@ -37,10 +55,10 @@ st.markdown(
 )
 
 # ============================================================
-# HELPER: KPI seguro (lida com séries vazias, NaN, etc.)
+# HELPERS
 # ============================================================
 def safe_kpi(col, label, df, col_name, fmt="num", border_color=None):
-    """Renderiza KPI com tratamento defensivo."""
+    """KPI defensivo."""
     if df is None or df.empty or col_name not in df.columns:
         col.markdown(
             render_kpi(label, "—", None, border_color=border_color or COLORS['neutral']),
@@ -70,13 +88,10 @@ def safe_kpi(col, label, df, col_name, fmt="num", border_color=None):
 
     if fmt == "price":
         val_str = f"R$ {now:.4f}"
-    elif fmt == "crypto":
-        if now >= 1000:
-            val_str = f"${now:,.0f}"
-        elif now >= 1:
-            val_str = f"${now:.4f}"
-        else:
-            val_str = f"${now:.6f}"
+    elif fmt == "em":
+        val_str = f"{now:.4f}"
+    elif fmt == "em_high":  # pra TRY que tem valores altos
+        val_str = f"{now:.2f}"
     else:
         val_str = f"{now:.2f}"
 
@@ -86,12 +101,9 @@ def safe_kpi(col, label, df, col_name, fmt="num", border_color=None):
     )
 
 
-# ============================================================
-# HELPER: Preços crypto via CoinGecko
-# ============================================================
 @st.cache_data(ttl=300)
 def get_crypto_prices():
-    """Retorna dict com preço e variação 24h de USDT, USDC, BTC vs USD."""
+    """Preços crypto via CoinGecko."""
     try:
         url = "https://api.coingecko.com/api/v3/simple/price"
         params = {
@@ -103,18 +115,9 @@ def get_crypto_prices():
         r.raise_for_status()
         data = r.json()
         return {
-            'USDT/USD': {
-                'price': data['tether']['usd'],
-                'change_24h': data['tether'].get('usd_24h_change', 0)
-            },
-            'USDC/USD': {
-                'price': data['usd-coin']['usd'],
-                'change_24h': data['usd-coin'].get('usd_24h_change', 0)
-            },
-            'BTC/USD': {
-                'price': data['bitcoin']['usd'],
-                'change_24h': data['bitcoin'].get('usd_24h_change', 0)
-            }
+            'USDT/USD': {'price': data['tether']['usd'], 'change_24h': data['tether'].get('usd_24h_change', 0)},
+            'USDC/USD': {'price': data['usd-coin']['usd'], 'change_24h': data['usd-coin'].get('usd_24h_change', 0)},
+            'BTC/USD': {'price': data['bitcoin']['usd'], 'change_24h': data['bitcoin'].get('usd_24h_change', 0)}
         }
     except Exception as e:
         st.warning(f"CoinGecko indisponível: {e}")
@@ -122,76 +125,93 @@ def get_crypto_prices():
 
 
 def safe_crypto_kpi(col, label, crypto_data, key, border_color):
-    """Renderiza KPI de crypto com tratamento defensivo."""
     if crypto_data is None or key not in crypto_data:
-        col.markdown(
-            render_kpi(label, "—", None, border_color=border_color),
-            unsafe_allow_html=True
-        )
+        col.markdown(render_kpi(label, "—", None, border_color=border_color), unsafe_allow_html=True)
         return
-
     price = crypto_data[key]['price']
     chg = crypto_data[key]['change_24h']
-
     if price >= 1000:
         val_str = f"${price:,.0f}"
     elif price >= 1:
         val_str = f"${price:.4f}"
     else:
         val_str = f"${price:.6f}"
-
-    col.markdown(
-        render_kpi(label, val_str, chg, border_color=border_color),
-        unsafe_allow_html=True
-    )
+    col.markdown(render_kpi(label, val_str, chg, border_color=border_color), unsafe_allow_html=True)
 
 
 # ============================================================
-# SEÇÃO 1: MACRO TRADICIONAL
+# DATAS
 # ============================================================
-st.markdown("### 🎯 Snapshot Macro")
-
 end_date = datetime.today()
 start_date = end_date - timedelta(days=60)
 
-with st.spinner("Carregando indicadores macro..."):
+# ============================================================
+# CARREGAMENTO
+# ============================================================
+with st.spinner("Carregando indicadores..."):
+    # Macro BRL
     ptax = pd.DataFrame()
     dxy = pd.DataFrame()
     cnh = pd.DataFrame()
     vix = pd.DataFrame()
+    # Peers EM
+    mxn = pd.DataFrame()
+    zar = pd.DataFrame()
+    try_ = pd.DataFrame()  # 'try' é palavra reservada em Python
 
-    try:
-        ptax = load_ptax(start_date, end_date)
-    except Exception as e:
-        st.caption(f"⚠️ PTAX: {e}")
+    try: ptax = load_ptax(start_date, end_date)
+    except Exception as e: st.caption(f"⚠️ PTAX: {e}")
 
-    try:
-        dxy = load_yahoo('DX-Y.NYB', start_date, end_date, col_name='DXY')
-    except Exception as e:
-        st.caption(f"⚠️ DXY: {e}")
+    try: dxy = load_yahoo('DX-Y.NYB', start_date, end_date, col_name='DXY')
+    except Exception as e: st.caption(f"⚠️ DXY: {e}")
 
     try:
         cnh = load_yahoo('CNH=X', start_date, end_date, col_name='CNH')
         if cnh.empty:
             cnh = load_yahoo('CNY=X', start_date, end_date, col_name='CNH')
-    except Exception as e:
-        st.caption(f"⚠️ CNH: {e}")
+    except Exception as e: st.caption(f"⚠️ CNH: {e}")
 
-    try:
-        vix = load_yahoo('^VIX', start_date, end_date, col_name='VIX')
-    except Exception as e:
-        st.caption(f"⚠️ VIX: {e}")
+    try: vix = load_yahoo('^VIX', start_date, end_date, col_name='VIX')
+    except Exception as e: st.caption(f"⚠️ VIX: {e}")
+
+    # Peers emergentes
+    try: mxn = load_yahoo('MXN=X', start_date, end_date, col_name='MXN')
+    except Exception as e: st.caption(f"⚠️ MXN: {e}")
+
+    try: zar = load_yahoo('ZAR=X', start_date, end_date, col_name='ZAR')
+    except Exception as e: st.caption(f"⚠️ ZAR: {e}")
+
+    try: try_ = load_yahoo('TRY=X', start_date, end_date, col_name='TRY')
+    except Exception as e: st.caption(f"⚠️ TRY: {e}")
+
+# ============================================================
+# SEÇÃO 1: MACRO BRL
+# ============================================================
+st.markdown("### 🎯 Snapshot Macro BRL")
 
 col1, col2, col3, col4 = st.columns(4)
 safe_kpi(col1, "PTAX (BRL/USD)", ptax, 'PTAX', fmt='price', border_color=COLORS['ptax'])
 safe_kpi(col2, "DXY", dxy, 'DXY', fmt='num', border_color=COLORS['dxy'])
-safe_kpi(col3, "CNH (Yuan)", cnh, 'CNH', fmt='num', border_color=COLORS['cnh'])
+safe_kpi(col3, "CNH (Yuan)", cnh, 'CNH', fmt='em', border_color=COLORS['cnh'])
 safe_kpi(col4, "VIX", vix, 'VIX', fmt='num', border_color=COLORS['vix'])
 
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ============================================================
-# SEÇÃO 2: CRYPTO
+# SEÇÃO 2: PEERS EMERGENTES
+# ============================================================
+st.markdown("### 🌎 Peers Emergentes")
+st.caption("Comparação com moedas de outras economias emergentes — contexto para entender se o movimento do BRL é idiossincrático ou parte de um movimento EM geral")
+
+col5, col6, col7 = st.columns(3)
+safe_kpi(col5, "MXN/USD (México)", mxn, 'MXN', fmt='em', border_color='#006847')  # verde bandeira México
+safe_kpi(col6, "ZAR/USD (África do Sul)", zar, 'ZAR', fmt='em', border_color='#FFB81C')  # ouro bandeira ZA
+safe_kpi(col7, "TRY/USD (Turquia)", try_, 'TRY', fmt='em_high', border_color='#E30A17')  # vermelho bandeira TR
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# ============================================================
+# SEÇÃO 3: CRYPTO
 # ============================================================
 st.markdown("### 🪙 Snapshot Crypto")
 st.caption("Atualizado a cada 5 minutos · Fonte: CoinGecko")
@@ -199,10 +219,10 @@ st.caption("Atualizado a cada 5 minutos · Fonte: CoinGecko")
 with st.spinner("Carregando preços crypto..."):
     crypto = get_crypto_prices()
 
-col5, col6, col7 = st.columns(3)
-safe_crypto_kpi(col5, "BTC/USD", crypto, 'BTC/USD', border_color='#F7931A')
-safe_crypto_kpi(col6, "USDT/USD", crypto, 'USDT/USD', border_color='#26A17B')
-safe_crypto_kpi(col7, "USDC/USD", crypto, 'USDC/USD', border_color='#2775CA')
+col8, col9, col10 = st.columns(3)
+safe_crypto_kpi(col8, "BTC/USD", crypto, 'BTC/USD', border_color='#F7931A')
+safe_crypto_kpi(col9, "USDT/USD", crypto, 'USDT/USD', border_color='#26A17B')
+safe_crypto_kpi(col10, "USDC/USD", crypto, 'USDC/USD', border_color='#2775CA')
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -211,8 +231,6 @@ st.markdown("<br>", unsafe_allow_html=True)
 # ============================================================
 st.markdown("### 🧭 Navegação")
 st.markdown("""
-Use o menu lateral pra acessar as análises detalhadas:
-
 | Página | Conteúdo | Status |
 |---|---|---|
 | **💱 FX e Dollar** | PTAX × DXY × DTWEXBGS, correlações, regimes | ✅ Disponível |
@@ -235,12 +253,8 @@ with st.expander("ℹ️ Sobre este monitor"):
     **Para quê serve:**
     - Acompanhar regimes de correlação do BRL com indicadores globais e locais
     - Identificar quando o real se descola dos drivers tradicionais
-    - Apoiar narrativa de mercado em conversas com clientes e em análise pré-cotação
-
-    **Limitações:**
-    - Latência: dados de fechamento (não tempo real, exceto crypto)
-    - Não é sistema de decisão automatizada — é monitor contextual
-    - Cobertura limitada ao que está em fontes gratuitas
+    - Comparar BRL com peers emergentes pra contextualizar movimentos
+    - Apoiar narrativa de mercado em conversas com clientes e análise pré-cotação
 
     **Atualização:** macro com cache de 1 hora · crypto com cache de 5 minutos.
     """)
