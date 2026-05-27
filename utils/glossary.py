@@ -237,6 +237,7 @@ Séries de preço são não-estacionárias. Correlação em nível dá resultado
         "short": "Indica se o BRL está mais correlacionado com dólar contra emergentes (DTWEXBGS) ou contra G10 (DXY). Identifica o 'regime' em que o real está operando.",
         "detail": """
 **Cálculo:**
+
 Diff = corr(PTAX, DTWEXBGS) − corr(PTAX, DXY)
 
 **Interpretação:**
@@ -473,7 +474,6 @@ Mais importante que o spread nominal é o **spread real** (ajustado pela inflaç
         "short": "Spread entre juros reais (descontados da inflação) do Brasil e dos EUA. É o indicador mais limpo de atratividade do BRL para capital externo de longo prazo.",
         "detail": """
 **Cálculo:**
-
 Carry Real = (Selic - IPCA 12m) - (Fed Funds - CPI 12m)
 
 Onde:
@@ -596,4 +596,8 @@ def render_detail_expander(key, st):
         st.markdown(term['detail'])
         st.markdown(f"**Por que importa para o BRL:** {term['why']}")
         st.caption(f"📊 {term['source']}")
+
+
+
+
 
