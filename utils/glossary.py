@@ -290,4 +290,111 @@ def render_detail_expander(key, st):
     with st.expander(f"📖 Saiba mais sobre {term['title']}"):
         st.markdown(term['detail'])
         st.markdown(f"**Por que importa para o BRL:** {term['why']}")
-        st.caption(f"📊 {term['source']}")
+        st.caption(f"📊 {term['source']
+                       "COMMODITIES_EXPORT": {
+        "title": "Commodities Brasileiras de Exportação",
+        "short": "Brasil é exportador líquido de petróleo, soja, minério de ferro e café. Quando esses preços sobem, geram fluxo de USD para o país e tendem a fortalecer o BRL.",
+        "detail": """
+**As 4 principais commodities exportadas pelo Brasil (2025):**
+
+| Commodity | Valor exportado | Ranking |
+|---|---|---|
+| **Petróleo Bruto** (Brent) | US$ 44 bi | #1 |
+| **Soja em grão** | US$ 43 bi | #2 |
+| **Minério de Ferro** | US$ 26 bi | #3 |
+| **Café Arábica** | US$ 15 bi | #4 |
+
+**Como afetam o BRL:**
+
+Quando os preços sobem:
+1. Exportadores recebem mais USD por unidade exportada
+2. Maior fluxo de USD entrando no país
+3. Pressão de oferta sobre o USD → BRL aprecia
+4. Termos de troca melhoram → confiança no real aumenta
+
+**Defasagem típica:** O canal preço-câmbio opera com defasagem de 5-15 dias úteis. Movimentos súbitos de commodities são geralmente seguidos por movimento do BRL na mesma semana.
+
+**Limitações como indicador:**
+- Não captura volumes exportados (só preços)
+- Petróleo e soja têm canais financeiros (futuros) que se movem antes do canal físico
+- Eventos climáticos podem mover preços sem afetar Brasil específico
+        """,
+        "why": "Commodities de exportação são o pilar fundamental da balança comercial brasileira. Quando sobem em uníssono, o BRL ganha fluxo estrutural e tende a se fortalecer mesmo contra dólar global forte.",
+        "source": "Yahoo Finance · BZ=F, ZS=F, TIO=F, KC=F · Diária",
+    },
+
+    "COMMODITIES_IMPORT": {
+        "title": "Commodities Brasileiras de Importação",
+        "short": "Brasil é importador líquido de derivados de petróleo (gasolina, diesel) e gás natural. Quando esses preços sobem, aumentam custos internos e pressionam o BRL para depreciar.",
+        "detail": """
+**As 3 principais commodities importadas pelo Brasil:**
+
+| Commodity | % das importações | Por quê |
+|---|---|---|
+| **Gasolina refinada** | ~3% | Refinarias BR não processam todo cru pesado |
+| **Diesel** | ~3% | Maior consumo do transporte rodoviário |
+| **Gás Natural (GNL)** | ~1.5% | Demanda industrial e térmicas |
+
+**Paradoxo brasileiro:**
+O Brasil **exporta petróleo bruto** (pesado, das jazidas do pré-sal) e **importa derivados refinados** (mais leves, de refinarias internacionais). Isso porque o parque refinador brasileiro foi historicamente desenhado para processar petróleo médio do Oriente Médio, não o cru pesado nacional.
+
+**Como afetam o BRL:**
+
+Quando os preços de derivados sobem:
+1. Importadores precisam comprar mais USD para pagar combustíveis
+2. Pressão de demanda sobre o USD → BRL deprecia
+3. Aumento de custos internos → inflação pressionada (gasolina, transportes)
+4. BC pode precisar subir Selic → impacto secundário
+
+**Sinal contrário ao das exportações:** quando preços de exportação E importação sobem juntos (ex: 2022 com guerra), o efeito líquido depende dos **termos de troca**.
+        """,
+        "why": "Custos de importação afetam balança comercial e inflação interna. Quando derivados sobem mas exportações não acompanham, BRL deprecia por dois canais: comercial e inflacionário.",
+        "source": "Yahoo Finance · RB=F, HO=F, NG=F · Diária",
+    },
+
+    "TERMS_OF_TRADE": {
+        "title": "Termos de Troca",
+        "short": "Razão entre o preço médio das exportações e o preço médio das importações brasileiras. Quando sobe, Brasil 'ganha' no fluxo comercial; quando cai, 'perde'. É o indicador macro mais limpo de fundamentals do BRL.",
+        "detail": """
+**Conceito clássico de macroeconomia:**}")
+
+Termos de Troca = Preço médio das Exportações / Preço médio das Importações
+
+                        **Por que é o indicador macro mais limpo:**
+
+Se o Brasil exporta a US$100 e importa a US$80, está "ganhando" — pode importar mais com cada unidade exportada. Se exporta a US$100 e importa a US$120, está "perdendo" — precisa exportar mais para importar o mesmo.
+
+**Metodologia neste monitor:**
+
+1. **Cesta de Exportação** (média de 4 commodities normalizadas):
+   - Brent, Soja, Minério de Ferro, Café Arábica
+2. **Cesta de Importação** (média de 3 commodities normalizadas):
+   - Gasolina, Diesel, Gás Natural
+3. **Cada série normalizada para base 100 = 1 ano atrás**
+   - Necessário porque commodities têm unidades diferentes (US$/barril, cents/bushel, etc)
+4. **Índice de TT = (Cesta Exp / Cesta Imp) × 100**
+
+**Interpretação:**
+- **TT > 100:** termos de troca melhoraram desde a base — Brasil ganhando
+- **TT < 100:** termos de troca pioraram — Brasil perdendo
+- **TT estável:** equilíbrio entre os dois lados
+
+**Relação com BRL:**
+
+Historicamente, TT e PTAX têm correlação **negativa forte** (-0.5 a -0.7):
+- TT sobe → BRL aprecia (cai)
+- TT cai → BRL deprecia (sobe)
+
+Quando TT e BRL **divergem** (ambos sobem ou ambos caem juntos), é sinal de que outro fator está dominando o BRL (fiscal, monetário, fluxo de capital).
+
+**Limitações:**
+- Não inclui preços de volume — assume volumes constantes
+- Cesta simplificada (apenas commodities líquidas com futures)
+- Não captura serviços, manufaturados, etc.
+        """,
+        "why": "É o fundamento estrutural mais robusto do BRL no curto-médio prazo. Quando você quer saber se o real 'merece' estar onde está, olhar TT vs PTAX é o primeiro reality check.",
+        "source": "Cálculo interno · cestas normalizadas base 100 anual",
+    },
+}
+
+                        
