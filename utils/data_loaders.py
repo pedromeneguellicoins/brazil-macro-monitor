@@ -102,18 +102,59 @@ def join_and_align(df_base, *others, ffill_cols=None):
 
 
 # ============================================================
-# EXCHANGES BRASILEIRAS — USDT/BRL SPOT
+# COMMODITIES — TICKERS BRASIL-RELEVANTES
+# ============================================================
+COMMODITY_TICKERS = {
+    # Exportações
+    'Brent': {'ticker': 'BZ=F', 'unit': 'US$/barril', 'category': 'export'},
+    'Soja': {'ticker': 'ZS=F', 'unit': 'cents/bushel', 'category': 'export'},
+    'Minério de Ferro': {'ticker': 'TIO=F', 'unit': 'US$/tonelada', 'category': 'export'},
+    'Café Arábica': {'ticker': 'KC=F', 'unit': 'cents/libra', 'category': 'export'},
+    # Importações
+    'Gasolina': {'ticker': 'RB=F', 'unit': 'US$/gallon', 'category': 'import'},
+    'Diesel': {'ticker': 'HO=F', 'unit': 'US$/gallon', 'category': 'import'},
+    'Gás Natural': {'ticker': 'NG=F', 'unit': 'US$/MMBtu', 'category': 'import'},
+}
+
+
+@st.cache_data(ttl=3600)
+def load_commodity(name, start_date, end_date):
+    """Carrega commodity pelo nome canônico."""
+    if name not in COMMODITY_TICKERS:
+        return pd.DataFrame()
+    ticker = COMMODITY_TICKERS[name]['ticker']
+    return load_yahoo(ticker, start_date, end_date, col_name=name)
+
+
+def normalize_to_base100(series, base_date=None):
+    """Normaliza série para base 100. Útil pra comparar commodities com unidades diferentes."""
+    if series.empty:
+        return series
+    series = series.dropna()
+    if series.empty:
+        return series
+    if base_date is None:
+        base_value = series.iloc[0]
+    else:
+        nearest_idx = series.index.get_indexer([pd.Timestamp(base_date)], method='nearest')[0]
+        base_value = series.iloc[nearest_idx]
+
+    if base_value == 0 or pd.isna(base_value):
+        return series
+    return (series / base_value) * 100
+
+
+# ============================================================
+# EXCHANGES BRASILEIRAS — USDT/BRL
 # ============================================================
 @st.cache_data(ttl=60)
 def load_mercadobitcoin_usdt_brl():
-    """USDT/BRL no Mercado Bitcoin."""
     try:
         url = "https://api.mercadobitcoin.net/api/v4/tickers"
         params = {"symbols": "USDT-BRL"}
         r = requests.get(url, params=params, timeout=10)
         r.raise_for_status()
         data = r.json()[0]
-
         return {
             'exchange': 'Mercado Bitcoin',
             'bid': float(data['buy']),
@@ -128,17 +169,8 @@ def load_mercadobitcoin_usdt_brl():
 
 @st.cache_data(ttl=60)
 def load_foxbit_usdt_brl():
-    """
-    USDT/BRL na Foxbit.
-    Estratégia: endpoint 1 (ticker/24hr) é o único completo.
-    Se falhar, tenta com headers diferentes pra burlar bloqueios.
-    Como último recurso, usa orderbook (sem volume).
-    """
     target_url = "https://api.foxbit.com.br/rest/v3/markets/usdtbrl/ticker/24hr"
-
-    # Tenta o endpoint principal com headers variados
     header_variants = [
-        # Variante 1: headers padrão de browser (mais robusta)
         {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept": "application/json, text/plain, */*",
@@ -146,80 +178,60 @@ def load_foxbit_usdt_brl():
             "Origin": "https://app.foxbit.com.br",
             "Referer": "https://app.foxbit.com.br/",
         },
-        # Variante 2: só Accept (simples)
-        {
-            "Accept": "application/json",
-        },
-        # Variante 3: sem headers customizados (deixa requests usar padrão)
+        {"Accept": "application/json"},
         {},
     ]
-
     last_error = None
     for headers in header_variants:
         try:
             r = requests.get(target_url, headers=headers, timeout=10)
             r.raise_for_status()
             data = r.json()
-
             bid = float(data.get('best_bid', 0))
             ask = float(data.get('best_ask', 0))
             last = float(data.get('last', 0))
             volume = float(data.get('volume', 0))
-
             if bid > 0 and ask > 0:
                 return {
                     'exchange': 'Foxbit',
-                    'bid': bid,
-                    'ask': ask,
-                    'last': last,
-                    'volume_24h': volume,
-                    'change_24h': None,
-                    'debug_source': f'ticker/24hr (header variant {header_variants.index(headers) + 1})',
+                    'bid': bid, 'ask': ask, 'last': last,
+                    'volume_24h': volume, 'change_24h': None,
+                    'debug_source': f'ticker/24hr (variant {header_variants.index(headers) + 1})',
                 }
         except Exception as e:
-            last_error = f"variant {header_variants.index(headers) + 1}: {type(e).__name__}: {str(e)[:100]}"
+            last_error = f"variant {header_variants.index(headers) + 1}: {type(e).__name__}: {str(e)[:80]}"
             continue
 
-    # Fallback: orderbook (funciona mas sem volume)
     try:
         url = "https://api.foxbit.com.br/rest/v3/markets/usdtbrl/orderbook?depth=1"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "application/json",
-        }
+        headers = {"User-Agent": "Mozilla/5.0", "Accept": "application/json"}
         r = requests.get(url, headers=headers, timeout=10)
         r.raise_for_status()
         data = r.json()
-
         if data.get('bids') and data.get('asks'):
             bid = float(data['bids'][0][0])
             ask = float(data['asks'][0][0])
             return {
                 'exchange': 'Foxbit',
-                'bid': bid,
-                'ask': ask,
-                'last': (bid + ask) / 2,
-                'volume_24h': 0,  # orderbook não tem volume
-                'change_24h': None,
+                'bid': bid, 'ask': ask, 'last': (bid + ask) / 2,
+                'volume_24h': 0, 'change_24h': None,
                 'debug_source': 'orderbook (fallback, sem volume)',
-                'partial_data': True,  # flag: dados incompletos
+                'partial_data': True,
             }
     except Exception as e:
-        last_error = (last_error or '') + f' | orderbook: {str(e)[:100]}'
+        last_error = (last_error or '') + f' | orderbook: {str(e)[:80]}'
 
     return {'exchange': 'Foxbit', 'error': last_error or 'todos endpoints falharam'}
 
 
 @st.cache_data(ttl=60)
 def load_bitso_usdt_brl():
-    """USDT/BRL na Bitso."""
     try:
         url = "https://api.bitso.com/v3/ticker/"
         params = {"book": "usdt_brl"}
         r = requests.get(url, params=params, timeout=10)
         r.raise_for_status()
         data = r.json()['payload']
-
         return {
             'exchange': 'Bitso',
             'bid': float(data['bid']),
@@ -234,14 +246,12 @@ def load_bitso_usdt_brl():
 
 @st.cache_data(ttl=60)
 def load_novadax_usdt_brl():
-    """USDT/BRL na NovaDAX."""
     try:
         url = "https://api.novadax.com/v1/market/ticker"
         params = {"symbol": "USDT_BRL"}
         r = requests.get(url, params=params, timeout=10)
         r.raise_for_status()
         data = r.json()['data']
-
         return {
             'exchange': 'NovaDAX',
             'bid': float(data['bid']),
@@ -256,32 +266,22 @@ def load_novadax_usdt_brl():
 
 @st.cache_data(ttl=60)
 def load_okx_usdt_brl():
-    """
-    USDT/BRL na OKX (global, suporta BRL via P2P fiat).
-    A OKX tem endpoint público para market data.
-    """
     try:
-        # OKX usa formato com hífen: USDT-BRL
         url = "https://www.okx.com/api/v5/market/ticker"
         params = {"instId": "USDT-BRL"}
         r = requests.get(url, params=params, timeout=10)
         r.raise_for_status()
         data = r.json()
-
         if data.get('code') != '0' or not data.get('data'):
-            return {'exchange': 'OKX', 'error': f"resposta inválida: {data.get('msg', 'desconhecido')}"}
-
+            return {'exchange': 'OKX', 'error': f"resposta inválida: {data.get('msg', '?')}"}
         ticker = data['data'][0]
         bid = float(ticker.get('bidPx', 0))
         ask = float(ticker.get('askPx', 0))
-
         if bid == 0 or ask == 0:
-            return {'exchange': 'OKX', 'error': 'par USDT-BRL sem liquidez ou indisponível'}
-
+            return {'exchange': 'OKX', 'error': 'par sem liquidez'}
         return {
             'exchange': 'OKX',
-            'bid': bid,
-            'ask': ask,
+            'bid': bid, 'ask': ask,
             'last': float(ticker.get('last', 0)),
             'volume_24h': float(ticker.get('vol24h', 0)),
             'change_24h': None,
@@ -291,7 +291,6 @@ def load_okx_usdt_brl():
 
 
 def load_all_usdt_brl():
-    """Exchanges brasileiras + OKX."""
     return [
         load_mercadobitcoin_usdt_brl(),
         load_foxbit_usdt_brl(),
@@ -301,6 +300,5 @@ def load_all_usdt_brl():
     ]
 
 
-# Alias mantido pra compatibilidade
 def load_all_usdt_brl_with_p2p():
     return load_all_usdt_brl()
