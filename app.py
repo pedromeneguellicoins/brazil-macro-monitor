@@ -233,12 +233,12 @@ st.markdown("### 🧭 Navegação")
 st.markdown("""
 | Página | Conteúdo | Status |
 |---|---|---|
-| **💱 FX e Dollar** | PTAX × DXY × DTWEXBGS, correlações, regimes | ✅ Disponível |
-| **🪙 USDT Premium** | Premium USDT/BRL vs PTAX em múltiplas exchanges | 🚧 Em construção |
-| **📈 Rates** | Curva DI Brasil + diferencial Fed Funds | 🚧 Em construção |
-| **🌾 Commodities** | Iron ore, soja, Brent + CNH/Yuan | 🚧 Em construção |
+| **💱 FX e Dollar** | PTAX × DXY × DTWEXBGS, correlações, regimes | ✅ |
+| **🪙 USDT Premium** | Premium USDT/BRL vs PTAX em múltiplas exchanges | ✅ |
+| **📈 Rates** | Curva DI Brasil + diferencial Fed Funds | ✅ |
+| **🌾 Commodities** | Iron ore, soja, Brent + CNH/Yuan | ✅ |
 | **⚠️ Risk Sentiment** | VIX + spread NTN-B/UST (proxy CDS Brasil) | 🚧 Em construção |
-| **📋 About** | Metodologia, fontes, limitações | ✅ Disponível |
+| **📋 About** | Metodologia, fontes, limitações | ✅  |
 """)
 
 st.markdown("<br>", unsafe_allow_html=True)
