@@ -351,6 +351,21 @@ if failed:
             st.text(f"{f.get('exchange', f.get('trade_type', '?'))}: {f['error']}")
 
 # ============================================================
+# DEBUG INFO
+# ============================================================
+with st.expander("🔧 Diagnóstico técnico (debug)"):
+    st.caption("Informações pra debugar problemas de conexão com APIs")
+
+    for ex in exchanges_data:
+        ex_name = ex.get('exchange', ex.get('trade_type', '?'))
+        if 'error' in ex:
+            st.text(f"❌ {ex_name}: {ex['error']}")
+        else:
+            debug = ex.get('debug_source', 'endpoint padrão')
+            partial = ' [DADOS PARCIAIS]' if ex.get('partial_data') else ''
+            st.text(f"✅ {ex_name}: {debug}{partial}")
+
+# ============================================================
 # FOOTER
 # ============================================================
 st.markdown(render_footer(), unsafe_allow_html=True)
