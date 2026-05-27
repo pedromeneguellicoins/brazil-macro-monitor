@@ -130,62 +130,82 @@ def load_mercadobitcoin_usdt_brl():
 def load_foxbit_usdt_brl():
     """
     USDT/BRL na Foxbit.
-    Tenta múltiplos endpoints em cascata, já que a API da Foxbit
-    mudou várias vezes.
+    Estratégia: endpoint 1 (ticker/24hr) é o único completo.
+    Se falhar, tenta com headers diferentes pra burlar bloqueios.
+    Como último recurso, usa orderbook (sem volume).
     """
-    endpoints_to_try = [
-        # Endpoint 1: v3 markets ticker
+    target_url = "https://api.foxbit.com.br/rest/v3/markets/usdtbrl/ticker/24hr"
+
+    # Tenta o endpoint principal com headers variados
+    header_variants = [
+        # Variante 1: headers padrão de browser (mais robusta)
         {
-            'url': "https://api.foxbit.com.br/rest/v3/markets/usdtbrl/ticker/24hr",
-            'parser': lambda d: {
-                'bid': float(d.get('best_bid', 0)),
-                'ask': float(d.get('best_ask', 0)),
-                'last': float(d.get('last', 0)),
-                'volume': float(d.get('volume', 0)),
-            }
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
+            "Origin": "https://app.foxbit.com.br",
+            "Referer": "https://app.foxbit.com.br/",
         },
-        # Endpoint 2: v3 markets quotes
+        # Variante 2: só Accept (simples)
         {
-            'url': "https://api.foxbit.com.br/rest/v3/markets/usdtbrl/quotes",
-            'parser': lambda d: {
-                'bid': float(d.get('bid', 0)),
-                'ask': float(d.get('ask', 0)),
-                'last': float(d.get('last', 0)),
-                'volume': 0,
-            }
+            "Accept": "application/json",
         },
-        # Endpoint 3: ticker book (orderbook top)
-        {
-            'url': "https://api.foxbit.com.br/rest/v3/markets/usdtbrl/orderbook?depth=1",
-            'parser': lambda d: {
-                'bid': float(d['bids'][0][0]) if d.get('bids') else 0,
-                'ask': float(d['asks'][0][0]) if d.get('asks') else 0,
-                'last': (float(d['bids'][0][0]) + float(d['asks'][0][0])) / 2 if d.get('bids') and d.get('asks') else 0,
-                'volume': 0,
-            }
-        },
+        # Variante 3: sem headers customizados (deixa requests usar padrão)
+        {},
     ]
 
     last_error = None
-    for endpoint in endpoints_to_try:
+    for headers in header_variants:
         try:
-            r = requests.get(endpoint['url'], timeout=10)
+            r = requests.get(target_url, headers=headers, timeout=10)
             r.raise_for_status()
             data = r.json()
 
-            parsed = endpoint['parser'](data)
-            if parsed['bid'] > 0 and parsed['ask'] > 0:
+            bid = float(data.get('best_bid', 0))
+            ask = float(data.get('best_ask', 0))
+            last = float(data.get('last', 0))
+            volume = float(data.get('volume', 0))
+
+            if bid > 0 and ask > 0:
                 return {
                     'exchange': 'Foxbit',
-                    'bid': parsed['bid'],
-                    'ask': parsed['ask'],
-                    'last': parsed['last'],
-                    'volume_24h': parsed['volume'],
+                    'bid': bid,
+                    'ask': ask,
+                    'last': last,
+                    'volume_24h': volume,
                     'change_24h': None,
+                    'debug_source': f'ticker/24hr (header variant {header_variants.index(headers) + 1})',
                 }
         except Exception as e:
-            last_error = str(e)
+            last_error = f"variant {header_variants.index(headers) + 1}: {type(e).__name__}: {str(e)[:100]}"
             continue
+
+    # Fallback: orderbook (funciona mas sem volume)
+    try:
+        url = "https://api.foxbit.com.br/rest/v3/markets/usdtbrl/orderbook?depth=1"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "application/json",
+        }
+        r = requests.get(url, headers=headers, timeout=10)
+        r.raise_for_status()
+        data = r.json()
+
+        if data.get('bids') and data.get('asks'):
+            bid = float(data['bids'][0][0])
+            ask = float(data['asks'][0][0])
+            return {
+                'exchange': 'Foxbit',
+                'bid': bid,
+                'ask': ask,
+                'last': (bid + ask) / 2,
+                'volume_24h': 0,  # orderbook não tem volume
+                'change_24h': None,
+                'debug_source': 'orderbook (fallback, sem volume)',
+                'partial_data': True,  # flag: dados incompletos
+            }
+    except Exception as e:
+        last_error = (last_error or '') + f' | orderbook: {str(e)[:100]}'
 
     return {'exchange': 'Foxbit', 'error': last_error or 'todos endpoints falharam'}
 
