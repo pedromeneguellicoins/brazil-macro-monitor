@@ -1,13 +1,27 @@
 """
 Estilo Bloomberg Terminal-inspired.
-Fundo preto puro, dados em âmbar, sinais verde/vermelho fosforescente.
 """
+from datetime import datetime
+try:
+    from zoneinfo import ZoneInfo
+    BR_TZ = ZoneInfo("America/Sao_Paulo")
+except Exception:
+    BR_TZ = None
+
+
+def now_brasilia():
+    """Retorna datetime atual no horário de Brasília (UTC-3)."""
+    if BR_TZ:
+        return datetime.now(BR_TZ)
+    # Fallback: UTC-3 manual
+    from datetime import timezone, timedelta
+    return datetime.now(timezone(timedelta(hours=-3)))
+
 
 # ============================================================
 # PALETA BLOOMBERG TERMINAL
 # ============================================================
 COLORS = {
-    # Background
     'bg_main': '#000000',
     'bg_card': '#0A0A0A',
     'bg_header': '#000000',
@@ -15,31 +29,27 @@ COLORS = {
     'border': '#2D2D2D',
     'border_light': '#404040',
 
-    # Text
     'text_main': '#FFFFFF',
     'text_dim': '#808080',
     'text_secondary': '#B0B0B0',
 
-    # Bloomberg colors
-    'amber': '#FFA500',          # cor primária Bloomberg
+    'amber': '#FFA500',
     'amber_bright': '#FFB733',
-    'cyan': '#00BFFF',           # links, info
-    'yellow': '#FFFF00',         # warnings, destaques
+    'cyan': '#00BFFF',
+    'yellow': '#FFFF00',
 
-    # Sinais
-    'positive': '#00FF41',       # verde fosforescente
-    'negative': '#FF3939',       # vermelho saturado
+    'positive': '#00FF41',
+    'negative': '#FF3939',
     'neutral': '#808080',
 
-    # Cores por categoria (mantidas pra gráficos)
-    'ptax': '#FFA500',           # âmbar (BRL é o destaque principal)
-    'dxy': '#00BFFF',            # cyan
-    'dtwexbgs': '#FFFF00',       # amarelo
-    'cnh': '#FF6B35',            # laranja escuro
-    'usdt_premium': '#B266FF',   # roxo
-    'vix': '#FF3939',            # vermelho (risco)
-    'commodities': '#00FF41',    # verde
-    'rates': '#FF8C00',          # laranja
+    'ptax': '#FFA500',
+    'dxy': '#00BFFF',
+    'dtwexbgs': '#FFFF00',
+    'cnh': '#FF6B35',
+    'usdt_premium': '#B266FF',
+    'vix': '#FF3939',
+    'commodities': '#00FF41',
+    'rates': '#FF8C00',
 }
 
 # ============================================================
@@ -62,7 +72,7 @@ PLOTLY_AXIS = dict(
 
 
 # ============================================================
-# LOGO SVG — terminal style
+# LOGO SVG
 # ============================================================
 LOGO_SVG = """
 <svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
@@ -82,30 +92,24 @@ LOGO_SVG = """
 
 
 # ============================================================
-# CSS — override agressivo
+# CSS
 # ============================================================
 def get_custom_css():
     return f"""
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
-        /* ============ BASE ============ */
         html, body, [class*="css"], .stApp {{
             background-color: {COLORS['bg_main']} !important;
             color: {COLORS['text_main']} !important;
             font-family: 'JetBrains Mono', 'Courier New', monospace !important;
         }}
-
-        .stApp {{
-            background-color: {COLORS['bg_main']} !important;
-        }}
-
+        .stApp {{ background-color: {COLORS['bg_main']} !important; }}
         .main .block-container {{
             background-color: {COLORS['bg_main']} !important;
             padding-top: 1rem;
         }}
 
-        /* ============ HEADER ============ */
         .main-header {{
             background-color: {COLORS['bg_card']};
             padding: 1.2rem 1.5rem;
@@ -113,93 +117,55 @@ def get_custom_css():
             border-left: 3px solid {COLORS['amber']};
             margin-bottom: 1.5rem;
         }}
-        .header-flex {{
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 1.5rem;
-        }}
-        .header-left {{
-            display: flex;
-            align-items: center;
-            gap: 1.2rem;
-        }}
-        .header-logo {{
-            flex-shrink: 0;
-        }}
-        .header-text {{
-            display: flex;
-            flex-direction: column;
-        }}
+        .header-flex {{ display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; }}
+        .header-left {{ display: flex; align-items: center; gap: 1.2rem; }}
+        .header-logo {{ flex-shrink: 0; }}
+        .header-text {{ display: flex; flex-direction: column; }}
         .header-title {{
-            font-size: 1.5rem;
-            font-weight: 700;
+            font-size: 1.5rem; font-weight: 700;
             color: {COLORS['amber']} !important;
             margin: 0;
             font-family: 'JetBrains Mono', monospace !important;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            line-height: 1.2;
-        }}
-        .header-title-accent {{
-            color: {COLORS['amber']} !important;
+            letter-spacing: 0.05em; text-transform: uppercase; line-height: 1.2;
         }}
         .header-subtitle {{
-            font-size: 0.8rem;
-            color: {COLORS['text_secondary']};
-            margin-top: 0.3rem;
-            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem; color: {COLORS['text_secondary']};
+            margin-top: 0.3rem; font-family: 'JetBrains Mono', monospace;
         }}
         .header-meta {{
-            font-size: 0.72rem;
-            color: {COLORS['text_secondary']};
-            font-family: 'JetBrains Mono', monospace;
-            text-align: right;
-            line-height: 1.7;
+            font-size: 0.72rem; color: {COLORS['text_secondary']};
+            font-family: 'JetBrains Mono', monospace; text-align: right; line-height: 1.7;
         }}
-        .header-meta-label {{
-            color: {COLORS['amber']};
-            font-weight: 600;
-            text-transform: uppercase;
-        }}
+        .header-meta-label {{ color: {COLORS['amber']}; font-weight: 600; text-transform: uppercase; }}
 
-        /* ============ HEADINGS (override AGRESSIVO) ============ */
         h1, h2, h3, h4, h5, h6,
         .stMarkdown h1, .stMarkdown h2, .stMarkdown h3,
         .stMarkdown h4, .stMarkdown h5, .stMarkdown h6 {{
             color: {COLORS['amber']} !important;
             font-family: 'JetBrains Mono', monospace !important;
-            font-weight: 600 !important;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            font-weight: 600 !important; text-transform: uppercase; letter-spacing: 0.05em;
         }}
-
         .stMarkdown h3 {{
             font-size: 1rem !important;
             border-left: 3px solid {COLORS['amber']};
-            padding-left: 0.8rem;
-            margin-top: 1.5rem;
-            margin-bottom: 1rem;
-            background-color: {COLORS['bg_card']};
             padding: 0.6rem 0.8rem;
+            margin-top: 1.5rem; margin-bottom: 1rem;
+            background-color: {COLORS['bg_card']};
             border-top: 1px solid {COLORS['border']};
             border-bottom: 1px solid {COLORS['border']};
             border-right: 1px solid {COLORS['border']};
         }}
 
-        /* ============ TEXTO GERAL ============ */
         .stMarkdown p, .stMarkdown li, .stMarkdown span,
         p, div, span, label {{
             color: {COLORS['text_main']};
             font-family: 'JetBrains Mono', monospace;
         }}
-
         .stCaption, [data-testid="stCaptionContainer"] {{
             color: {COLORS['text_dim']} !important;
             font-family: 'JetBrains Mono', monospace !important;
         }}
 
-        /* ============ KPI CARDS ============ */
         .kpi-card {{
             background-color: {COLORS['bg_card']};
             padding: 1rem 1.2rem;
@@ -208,43 +174,21 @@ def get_custom_css():
             margin-bottom: 0.5rem;
         }}
         .kpi-label {{
-            font-size: 0.7rem;
-            color: {COLORS['text_dim']};
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            font-weight: 600;
+            font-size: 0.7rem; color: {COLORS['text_dim']};
+            text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;
             font-family: 'JetBrains Mono', monospace;
         }}
         .kpi-value {{
-            font-size: 1.6rem;
-            font-weight: 700;
-            color: {COLORS['amber']};
+            font-size: 1.6rem; font-weight: 700; color: {COLORS['amber']};
             margin: 0.4rem 0 0.2rem 0;
-            font-family: 'JetBrains Mono', monospace;
-            letter-spacing: 0.02em;
+            font-family: 'JetBrains Mono', monospace; letter-spacing: 0.02em;
         }}
-        .kpi-delta-pos {{
-            color: {COLORS['positive']};
-            font-size: 0.8rem;
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 600;
-        }}
-        .kpi-delta-neg {{
-            color: {COLORS['negative']};
-            font-size: 0.8rem;
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 600;
-        }}
-        .kpi-delta-neutral {{
-            color: {COLORS['text_dim']};
-            font-size: 0.8rem;
-            font-family: 'JetBrains Mono', monospace;
-        }}
+        .kpi-delta-pos {{ color: {COLORS['positive']}; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; font-weight: 600; }}
+        .kpi-delta-neg {{ color: {COLORS['negative']}; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; font-weight: 600; }}
+        .kpi-delta-neutral {{ color: {COLORS['text_dim']}; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; }}
 
-        /* ============ TABS ============ */
         .stTabs [data-baseweb="tab-list"] {{
-            gap: 2px;
-            background-color: {COLORS['bg_main']};
+            gap: 2px; background-color: {COLORS['bg_main']};
             border-bottom: 1px solid {COLORS['border']};
         }}
         .stTabs [data-baseweb="tab"] {{
@@ -254,40 +198,22 @@ def get_custom_css():
             color: {COLORS['text_secondary']} !important;
             font-weight: 500 !important;
             font-family: 'JetBrains Mono', monospace !important;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            font-size: 0.8rem !important;
-            border: 1px solid {COLORS['border']} !important;
-            border-bottom: none !important;
+            text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.8rem !important;
+            border: 1px solid {COLORS['border']} !important; border-bottom: none !important;
         }}
         .stTabs [data-baseweb="tab"] p {{
             color: {COLORS['text_secondary']} !important;
             font-family: 'JetBrains Mono', monospace !important;
         }}
-        .stTabs [data-baseweb="tab"]:hover {{
-            background-color: {COLORS['bg_hover']} !important;
-            color: {COLORS['amber']} !important;
-        }}
-        .stTabs [data-baseweb="tab"]:hover p {{
-            color: {COLORS['amber']} !important;
-        }}
+        .stTabs [data-baseweb="tab"]:hover {{ background-color: {COLORS['bg_hover']} !important; color: {COLORS['amber']} !important; }}
+        .stTabs [data-baseweb="tab"]:hover p {{ color: {COLORS['amber']} !important; }}
         .stTabs [data-baseweb="tab"][aria-selected="true"] {{
-            background-color: {COLORS['amber']} !important;
-            color: {COLORS['bg_main']} !important;
-            font-weight: 700 !important;
+            background-color: {COLORS['amber']} !important; color: {COLORS['bg_main']} !important; font-weight: 700 !important;
         }}
-        .stTabs [data-baseweb="tab"][aria-selected="true"] p {{
-            color: {COLORS['bg_main']} !important;
-            font-weight: 700 !important;
-        }}
-        .stTabs [data-baseweb="tab-highlight"] {{
-            display: none !important;
-        }}
-        .stTabs [data-baseweb="tab-border"] {{
-            background-color: {COLORS['amber']} !important;
-        }}
+        .stTabs [data-baseweb="tab"][aria-selected="true"] p {{ color: {COLORS['bg_main']} !important; font-weight: 700 !important; }}
+        .stTabs [data-baseweb="tab-highlight"] {{ display: none !important; }}
+        .stTabs [data-baseweb="tab-border"] {{ background-color: {COLORS['amber']} !important; }}
 
-        /* ============ SIDEBAR ============ */
         [data-testid="stSidebar"] {{
             background-color: {COLORS['bg_card']} !important;
             border-right: 1px solid {COLORS['border']};
@@ -299,177 +225,99 @@ def get_custom_css():
         [data-testid="stSidebar"] .stMarkdown h3 {{
             color: {COLORS['amber']} !important;
             border-left: 2px solid {COLORS['amber']};
-            background-color: transparent;
-            border-top: none;
-            border-bottom: none;
-            border-right: none;
-            padding: 0.3rem 0.6rem;
-            font-size: 0.85rem !important;
+            background-color: transparent; border-top: none; border-bottom: none; border-right: none;
+            padding: 0.3rem 0.6rem; font-size: 0.85rem !important;
         }}
-        [data-testid="stSidebarNav"] {{
-            background-color: {COLORS['bg_card']};
-        }}
+        [data-testid="stSidebarNav"] {{ background-color: {COLORS['bg_card']}; }}
         [data-testid="stSidebarNav"] a {{
             color: {COLORS['text_main']} !important;
             font-family: 'JetBrains Mono', monospace !important;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            font-size: 0.8rem;
+            text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.8rem;
         }}
-        [data-testid="stSidebarNav"] a:hover {{
-            background-color: {COLORS['bg_hover']} !important;
-            color: {COLORS['amber']} !important;
-        }}
+        [data-testid="stSidebarNav"] a:hover {{ background-color: {COLORS['bg_hover']} !important; color: {COLORS['amber']} !important; }}
 
-        /* ============ INPUTS / SLIDERS ============ */
-        .stSlider [data-baseweb="slider"] {{
-            color: {COLORS['amber']};
-        }}
-        .stSlider [role="slider"] {{
-            background-color: {COLORS['amber']} !important;
-            border-color: {COLORS['amber']} !important;
-        }}
-        .stSelectbox label, .stMultiSelect label,
-        .stSlider label, .stCheckbox label {{
+        .stSlider [data-baseweb="slider"] {{ color: {COLORS['amber']}; }}
+        .stSlider [role="slider"] {{ background-color: {COLORS['amber']} !important; border-color: {COLORS['amber']} !important; }}
+        .stSelectbox label, .stMultiSelect label, .stSlider label, .stCheckbox label {{
             color: {COLORS['text_main']} !important;
             font-family: 'JetBrains Mono', monospace !important;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.05em;
+            text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;
         }}
-        .stMultiSelect [data-baseweb="tag"] {{
-            background-color: {COLORS['amber']} !important;
-            color: {COLORS['bg_main']} !important;
-        }}
-        .stMultiSelect [data-baseweb="select"] > div,
-        .stSelectbox [data-baseweb="select"] > div {{
-            background-color: {COLORS['bg_card']} !important;
-            border-color: {COLORS['border']} !important;
+        .stMultiSelect [data-baseweb="tag"] {{ background-color: {COLORS['amber']} !important; color: {COLORS['bg_main']} !important; }}
+        .stMultiSelect [data-baseweb="select"] > div, .stSelectbox [data-baseweb="select"] > div {{
+            background-color: {COLORS['bg_card']} !important; border-color: {COLORS['border']} !important;
         }}
 
-        /* ============ DATAFRAMES / TABELAS ============ */
-        [data-testid="stDataFrame"] {{
-            background-color: {COLORS['bg_card']};
-            border: 1px solid {COLORS['border']};
-        }}
-        [data-testid="stTable"] {{
-            font-family: 'JetBrains Mono', monospace !important;
-        }}
+        [data-testid="stDataFrame"] {{ background-color: {COLORS['bg_card']}; border: 1px solid {COLORS['border']}; }}
+        [data-testid="stTable"] {{ font-family: 'JetBrains Mono', monospace !important; }}
 
-        /* ============ METRIC NATIVA DO STREAMLIT ============ */
         [data-testid="stMetricLabel"] {{
             color: {COLORS['text_dim']} !important;
             font-family: 'JetBrains Mono', monospace !important;
-            text-transform: uppercase;
-            font-size: 0.7rem !important;
-            letter-spacing: 0.1em;
+            text-transform: uppercase; font-size: 0.7rem !important; letter-spacing: 0.1em;
         }}
         [data-testid="stMetricValue"] {{
             color: {COLORS['amber']} !important;
-            font-family: 'JetBrains Mono', monospace !important;
-            font-weight: 700 !important;
+            font-family: 'JetBrains Mono', monospace !important; font-weight: 700 !important;
         }}
-        [data-testid="stMetricDelta"] {{
-            font-family: 'JetBrains Mono', monospace !important;
-        }}
+        [data-testid="stMetricDelta"] {{ font-family: 'JetBrains Mono', monospace !important; }}
 
-        /* ============ EXPANDER ============ */
-        .streamlit-expanderHeader,
-        [data-testid="stExpander"] summary {{
+        .streamlit-expanderHeader, [data-testid="stExpander"] summary {{
             background-color: {COLORS['bg_card']} !important;
             border: 1px solid {COLORS['border']} !important;
             color: {COLORS['amber']} !important;
             font-family: 'JetBrains Mono', monospace !important;
-            text-transform: uppercase;
-            font-size: 0.8rem;
-            letter-spacing: 0.05em;
+            text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.05em;
         }}
-        [data-testid="stExpander"] {{
-            background-color: {COLORS['bg_card']} !important;
-            border: 1px solid {COLORS['border']} !important;
-        }}
+        [data-testid="stExpander"] {{ background-color: {COLORS['bg_card']} !important; border: 1px solid {COLORS['border']} !important; }}
 
-        /* ============ BUTTONS ============ */
         .stButton button, .stDownloadButton button {{
             background-color: {COLORS['bg_card']} !important;
             color: {COLORS['amber']} !important;
             border: 1px solid {COLORS['amber']} !important;
             border-radius: 0 !important;
             font-family: 'JetBrains Mono', monospace !important;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            font-weight: 600 !important;
+            text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600 !important;
         }}
-        .stButton button:hover, .stDownloadButton button:hover {{
-            background-color: {COLORS['amber']} !important;
-            color: {COLORS['bg_main']} !important;
-        }}
+        .stButton button:hover, .stDownloadButton button:hover {{ background-color: {COLORS['amber']} !important; color: {COLORS['bg_main']} !important; }}
 
-        /* ============ TABELAS MARKDOWN ============ */
-        .stMarkdown table {{
-            border: 1px solid {COLORS['border']} !important;
-            font-family: 'JetBrains Mono', monospace !important;
-        }}
+        .stMarkdown table {{ border: 1px solid {COLORS['border']} !important; font-family: 'JetBrains Mono', monospace !important; }}
         .stMarkdown table th {{
             background-color: {COLORS['bg_card']} !important;
             color: {COLORS['amber']} !important;
             border-bottom: 2px solid {COLORS['amber']} !important;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.05em;
+            text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;
         }}
         .stMarkdown table td {{
             background-color: {COLORS['bg_main']} !important;
             color: {COLORS['text_main']} !important;
             border: 1px solid {COLORS['border']} !important;
         }}
-        .stMarkdown table tr:hover td {{
-            background-color: {COLORS['bg_card']} !important;
-        }}
+        .stMarkdown table tr:hover td {{ background-color: {COLORS['bg_card']} !important; }}
 
-        /* ============ FOOTER ============ */
         footer {{visibility: hidden;}}
         .footer-custom {{
-            margin-top: 3rem;
-            padding: 1rem;
+            margin-top: 3rem; padding: 1rem;
             border-top: 1px solid {COLORS['border']};
-            text-align: center;
-            color: {COLORS['text_dim']};
-            font-size: 0.75rem;
-            font-family: 'JetBrains Mono', monospace;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
+            text-align: center; color: {COLORS['text_dim']};
+            font-size: 0.75rem; font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase; letter-spacing: 0.1em;
         }}
 
-        /* ============ CODE / PRE ============ */
         code {{
             background-color: {COLORS['bg_card']} !important;
             color: {COLORS['amber']} !important;
             border: 1px solid {COLORS['border']};
-            padding: 0.1em 0.4em;
-            border-radius: 0;
+            padding: 0.1em 0.4em; border-radius: 0;
             font-family: 'JetBrains Mono', monospace !important;
         }}
 
-        /* ============ HEADER ICONS (Share, Star, etc) ============ */
-        [data-testid="stToolbar"] {{
-            background-color: {COLORS['bg_main']} !important;
-        }}
+        [data-testid="stToolbar"] {{ background-color: {COLORS['bg_main']} !important; }}
 
-        /* ============ SCROLLBAR ============ */
-        ::-webkit-scrollbar {{
-            width: 10px;
-            height: 10px;
-        }}
-        ::-webkit-scrollbar-track {{
-            background: {COLORS['bg_main']};
-        }}
-        ::-webkit-scrollbar-thumb {{
-            background: {COLORS['border']};
-        }}
-        ::-webkit-scrollbar-thumb:hover {{
-            background: {COLORS['amber']};
-        }}
+        ::-webkit-scrollbar {{ width: 10px; height: 10px; }}
+        ::-webkit-scrollbar-track {{ background: {COLORS['bg_main']}; }}
+        ::-webkit-scrollbar-thumb {{ background: {COLORS['border']}; }}
+        ::-webkit-scrollbar-thumb:hover {{ background: {COLORS['amber']}; }}
     </style>
     """
 
@@ -487,16 +335,12 @@ def render_kpi(label, value, delta_value=None, delta_format="pct", border_color=
             delta_str = f"{delta_value:+.0f} bps"
         else:
             delta_str = f"{delta_value:+.3f}"
-
         if delta_value > 0:
-            css_class = "kpi-delta-pos"
-            arrow = "▲"
+            css_class = "kpi-delta-pos"; arrow = "▲"
         elif delta_value < 0:
-            css_class = "kpi-delta-neg"
-            arrow = "▼"
+            css_class = "kpi-delta-neg"; arrow = "▼"
         else:
-            css_class = "kpi-delta-neutral"
-            arrow = "■"
+            css_class = "kpi-delta-neutral"; arrow = "■"
         delta_html = f'<div class="{css_class}">{arrow} {delta_str}</div>'
 
     return f"""
@@ -509,9 +353,8 @@ def render_kpi(label, value, delta_value=None, delta_format="pct", border_color=
 
 
 def render_header(title, subtitle, sources=None):
-    from datetime import datetime
     sources_str = " · ".join(sources) if sources else ""
-
+    now = now_brasilia()
     return f"""
     <div class="main-header">
         <div class="header-flex">
@@ -523,8 +366,8 @@ def render_header(title, subtitle, sources=None):
                 </div>
             </div>
             <div class="header-meta">
-                <div><span class="header-meta-label">Updated:</span> {datetime.now().strftime('%Y-%m-%d %H:%M UTC-3')}</div>
-                <div><span class="header-meta-label">Sources:</span> {sources_str}</div>
+                <div><span class="header-meta-label">Atualizado:</span> {now.strftime('%d/%m/%Y %H:%M')} (Brasília)</div>
+                <div><span class="header-meta-label">Fontes:</span> {sources_str}</div>
             </div>
         </div>
     </div>
@@ -534,6 +377,6 @@ def render_header(title, subtitle, sources=None):
 def render_footer():
     return """
     <div class="footer-custom">
-        BRL Macro Monitor · Terminal v1.0 · Pedro Mendes
+        BRL Macro Monitor · Terminal v1.0 · Pedro Meneguelli
     </div>
     """
